@@ -4,10 +4,11 @@
 .vscode/
 /__pycache__
 config/__pycache__
-habits/__pycache__
-habits/services/__pycache__
-habits/migrations/__pycache__
-habits/management/commands/__pycache__
+parsing/__pycache__
+parsing/services/__pycache__
+parsing/migrations/__pycache__
+parsing/management/commands/__pycache__
+
 user_auth/__pycache__
 user_auth/migrations/__pycache__
 user_auth/management/commands/__pycache__/
