@@ -1,6 +1,9 @@
 requests
 django
 djangorestframework
+# python-telegram-bot
+telebot
+# aiogram
 psycopg2-binary
 python-dotenv
 django-cors-headers

@@ -6,4 +6,3 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         conn = CodeforcesParser()
         conn.get_update()
-

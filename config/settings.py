@@ -23,7 +23,7 @@ dot_env = os.path.join(BASE_DIR, '.env')
 load_dotenv(dotenv_path=dot_env)
 
 if os.path.isfile(dot_env):
-    bot_token = os.getenv('bot_token')
+    BOT_TOKEN = os.getenv('BOT_TOKEN')
     POSTGRES_DB = os.getenv('POSTGRES_DB')
     POSTGRES_USER = os.getenv('POSTGRES_USER')
     POSTGRES_PASSWORD = os.getenv('POSTGRES_PASSWORD')

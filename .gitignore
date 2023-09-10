@@ -3,11 +3,11 @@
 /.idea
 .vscode/
 /__pycache__
-config/__pycache__
-parsing/__pycache__
-parsing/services/__pycache__
-parsing/migrations/__pycache__
-parsing/management/commands/__pycache__
+config/__pycache__/
+parsing/__pycache__/
+parsing/services/__pycache__/
+parsing/migrations/__pycache__/
+parsing/management/commands/__pycache__/
 
 user_auth/__pycache__
 user_auth/migrations/__pycache__

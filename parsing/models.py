@@ -3,6 +3,30 @@ from config.settings import NULLABLE, URL_PROBLEM
 from user_auth.models import User
 
 
+class Contest(models.Model):
+    """
+    Контесты, по которым распределяются задачи
+    name,
+    annotation
+    """
+
+    name = models.CharField(
+        max_length=200,
+        verbose_name="Название контеста",
+    )
+    annotation = models.TextField(
+        verbose_name="Описание контеста",
+        **NULLABLE
+    )
+
+    class Meta:
+        verbose_name = 'контест'
+        verbose_name_plural = 'контесты'
+
+    def __str__(self):
+        return f"{self.name})"
+
+
 class Problems(models.Model):
     """
     Класс Задачи
@@ -12,7 +36,8 @@ class Problems(models.Model):
     points,
     rating,
     type,
-    solved_count
+    solved_count,
+    contest
     """
     name = models.CharField(
         verbose_name="Название задачи",
@@ -53,16 +78,24 @@ class Problems(models.Model):
         **NULLABLE
         )
 
+    contest = models.ForeignKey(
+        Contest,
+        verbose_name="Контест",
+        on_delete=models.DO_NOTHING,
+        **NULLABLE
+    )
+
     class Meta:
         verbose_name = 'задача'
         verbose_name_plural = 'задачи'
+        unique_together = ("contestId", "index")
 
     def get_url(self):
         return f"{URL_PROBLEM}{self.contestId}/{self.index}"
 
     def __str__(self):
         return f"Задача {self.contestId}{self.index} {self.name}. " + \
-            f"Сложность: {self.rating}, решений: {self.solved_count}"
+            f"Сложность: {self.rating}, решений: {self.solved_count}, контест: {self.contest}"
 
 
 class Tags(models.Model):
@@ -84,12 +117,53 @@ class Tags(models.Model):
         verbose_name = 'тэг'
         verbose_name_plural = 'тэги'
 
-    # def __str__(self):
-    #     print("***", self.problem, "\n")
-    #     return f"{self.name} {self.problem.all()}"
     def __str__(self):
-        problems_str = ", ".join([str(problem) for problem in self.problem.all()])
-        return f"{self.name} ({problems_str})"
+        return f"{self.name}"
+
+
+class Subscriptions(models.Model):
+    """
+    подписки пользователей
+    user,
+    contest,
+    tag,
+    rating,
+    is_active
+    """
+    user = models.ForeignKey(
+        User,
+        verbose_name="Пользователь",
+        on_delete=models.CASCADE
+    )
+
+    contest = models.ForeignKey(
+        Contest,
+        verbose_name="Контест",
+        on_delete=models.DO_NOTHING
+    )
+
+    tag = models.ForeignKey(
+        Tags,
+        verbose_name="Тэг",
+        on_delete=models.DO_NOTHING
+    )
+
+    rating = models.IntegerField(
+        default=0,
+        verbose_name="уровень сложности",
+        **NULLABLE
+    )
+
+    is_active = models.BooleanField(
+        verbose_name="Активна"
+    )
+
+    class Meta:
+        verbose_name = 'Рассылка'
+        verbose_name_plural = 'Рассылки'
+
+    def __str__(self):
+        return f"Рассылка {self.user.first_name} {self.contest} {self.tag} {self.rating}"
 
 
 class SendedProblems(models.Model):
@@ -118,3 +192,33 @@ class SendedProblems(models.Model):
 
     def __str__(self):
         return f"{self.user} {self.problem} {self.datetimesend}"
+
+
+class BotMessages(models.Model):
+    """
+    Сообщения пользователей, полученные от бота
+    message_id
+    message_text
+    user
+    """
+    message_id = models.IntegerField(
+        verbose_name="id сообщения"
+    )
+    message_text = models.CharField(
+        verbose_name="текст сообщения",
+        max_length=300,
+        **NULLABLE
+    )
+    user = models.ForeignKey(
+        User,
+        verbose_name="пользователь",
+        on_delete=models.SET_NULL,
+        **NULLABLE
+    )
+
+    def __str__(self):
+        return f"id:{self.message_id} {self.message_text} {self.user}"
+
+    class Meta:
+        verbose_name = 'сообщение'
+        verbose_name_plural = 'сообщения'

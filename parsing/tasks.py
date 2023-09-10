@@ -9,4 +9,3 @@ def check_update(*args):
     """
     conn = CodeforcesParser()
     conn.get_update()
-    

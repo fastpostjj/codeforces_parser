@@ -2,7 +2,7 @@ import requests
 import json
 from config.settings import URL, URL_PROBLEM, LOG_FILE
 from django.utils import timezone
-from parsing.models import Problems, Tags
+from parsing.models import Problems, Tags, Contest
 
 
 """
@@ -16,9 +16,6 @@ comment и result.
 который зависит от метода и для каждого метода описан отдельно. Если status равен
 "FAILED", то поле result отсутствует.
 
-Поля, зависящие от языка, будут возвращаться с использованием языка по умолчанию.
-Вы можете передать дополнительный параметр lang с значениями en и ru для того,
-чтобы явно указать язык результата.
 """
 
 
@@ -30,23 +27,67 @@ class CodeforcesParser():
     def __init__(self):
         self._url = URL
 
-    # @property
-    def save_log(self, text):
-        datetime_now = timezone.now().strftime("%Y-%m-%d %H:%M:%S")
+    def save_log(self, text: str) -> None:
+        datetime_now = timezone.localtime(timezone.now()).strftime("%Y-%m-%d %H:%M:%S")
         with open(LOG_FILE, "a", encoding="utf-8") as file:
             file.write(f"{datetime_now} {text}\n")
+
+    @staticmethod
+    def get_contest_level(solved: int) -> Contest:
+        """
+        Метод возвращает уровень контеста в зависимости от сложности задачи.
+        Уровень 1
+        Задачи, у которых число решений менее 10
+        Уровень 2
+        Задачи, у которых число решений от 10 до 100
+        Уровень 3
+        Задачи, у которых число решений от 100 до 500
+        Уровень 4
+        Задачи, у которых число решений от 500 до 1 000
+        Уровень 5
+        Задачи, у которых число решений от 1 000 до 10 000
+        Уровень 6
+        Задачи, у которых число решений от 10 000 до 100 000
+        Уровень 7
+        Задачи, у которых число решений больше 100 000
+        """
+        if solved <= 10:
+            contest = Contest.objects.get(name="Уровень 1")
+        elif solved <= 100:
+            contest = Contest.objects.get(name="Уровень 2")
+        elif solved <= 500:
+            contest = Contest.objects.get(name="Уровень 3")
+        elif solved <= 1000:
+            contest = Contest.objects.get(name="Уровень 4")
+        elif solved <= 10000:
+            contest = Contest.objects.get(name="Уровень 5")
+        elif solved <= 100000:
+            contest = Contest.objects.get(name="Уровень 6")
+        else:
+            contest = Contest.objects.get(name="Уровень 7")
+        return contest
+
+    def set_contest_level(self) -> None:
+        """
+        заполнение поля contest
+        """
+        problems = Problems.objects.filter(contest__isnull=True)
+        for problem in problems:
+            solved = problem.solved_count
+            problem.contest = self.get_contest_level(solved)
+            problem.save()
 
     @property
     def url(self):
         return self._url
 
     @url.setter
-    def url(self, url):
+    def url(self, url: str):
         self._url = url
 
     def get_data_from_site(self) -> str:
         """
-        метод посылает запрос на сайт и возвращает полученные данные
+        метод отправляет запрос на сайт и возвращает полученные данные
         """
         method = "problemset.problems"
         try:
@@ -62,7 +103,6 @@ class CodeforcesParser():
         if response.status_code == 200:
             if response.json()["status"] == "OK":
                 result = response.json()
-                problems = result["result"]["problems"]
 
                 # сохраняем полученные данные в файл
                 with open("res.json", mode="w", encoding="utf-8") as file:
@@ -85,6 +125,7 @@ class CodeforcesParser():
         """
         разбираем полученные данные
         """
+        self.save_log("check update")
         result = self.get_data_from_site()
         # result = self.get_from_file()
 
@@ -97,6 +138,7 @@ class CodeforcesParser():
             with open("res.json", mode="w", encoding="utf-8") as file:
                 json.dump(result, file)
             for problem in problems:
+                # Проверяем корректность полученного словаря на наличие обязательных ключей
                 if 'name' in problem and \
                         'index' in problem and \
                         'contestId' in problem and \
@@ -135,6 +177,7 @@ class CodeforcesParser():
 
                     # получаем количество решивших задачу
                     solved_count = self.get_solved_count(problemStatistics, contestId, index)
+                    contest = self.get_contest_level(solved_count)
                     data = {
                         "name": name,
                         "index": index,
@@ -144,6 +187,7 @@ class CodeforcesParser():
                         "type": type,
                         "solved_count": solved_count,
                         "tags": tags,
+                        "contest": contest,
                     }
                     self.create_problem(data)
                 else:
@@ -156,6 +200,11 @@ class CodeforcesParser():
                 text = f"Добавлено {problems_added} задач и {tags_added} тегов"
                 print(text)
                 self.save_log(text)
+            else:
+                text = "Новых задач и тэгов нет"
+                print(text)
+                self.save_log(text)
+
         else:
             # Если status равен "FAILED", то поле comment содержит
             # причину, по которой запрос не получилось выполнить
@@ -171,7 +220,9 @@ class CodeforcesParser():
         type_problem = data["type"]
         solved_count = data["solved_count"]
         tags = data["tags"]
+        contest = data["contest"]
         for tag in tags:
+            # получаем объект тэг или создаем если такого еще нет
             if not Tags.objects.filter(name=tag).exists():
                 tag_instanсe = Tags.objects.create(
                     name=tag
@@ -179,9 +230,10 @@ class CodeforcesParser():
             else:
                 tag_instanсe = Tags.objects.get(name=tag)
 
+            # получаем или создаем задачу
             try:
                 problem_instance = Problems.objects.get(contestId=contestId, index=index)
-            except Problems.DoesNotExist:
+            except Problems.DoesNotExist as error:
                 problem_instance = Problems.objects.create(
                     name=name,
                     contestId=contestId,
@@ -189,27 +241,18 @@ class CodeforcesParser():
                     points=points,
                     rating=rating,
                     type_problem=type_problem,
-                    solved_count=solved_count
+                    solved_count=solved_count,
+                    contest=contest
                 )
-                # Проверяем, есть ли уже связь между задачей и тэгом
-                if problem_instance not in tag_instanсe.problem.all():
+                # print("Ошибка ", error, "data=", data)
+            # except Exception as error:
+                # print("Ошибка ", error, "data=", data)
+                # Проверяем, есть ли уже связь между задачей и тэгом, если нет - создаем
+                if problem_instance and problem_instance not in tag_instanсe.problem.all():
                     tag_instanсe.problem.add(problem_instance)
 
-                # tag_instanse.problem.objects.filter(contestId=contestId, index=index).exists()
-            # добавить проверку на существование
-            # if not Problems.objects.filter(contestId=contestId, index=index, tags__in=[tag_instanse]).exists():
-            #     problem_instanse = tag_instanse.problem.create(
-            #         name=name,
-            #         index=index,
-            #         points=points,
-            #         rating=rating,
-            #         contestId=contestId,
-            #         type_problem=type_problem,
-            #         solved_count=solved_count,
-            #         tags=tags
-            #     )
-
     def get_solved_count(self, problemstatistics, contestId, index):
+        # находим количество решений задачи
         for problemstatistic in problemstatistics:
             if 'contestId' in problemstatistic and \
                 'index' in problemstatistic and \
