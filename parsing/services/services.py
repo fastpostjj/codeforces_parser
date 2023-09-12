@@ -81,114 +81,37 @@ class GetProblems:
         except Exception as error:
             print("Ошибка создания подписки ", error)
 
-    def get_all_subsriptions(self, user_id: int):
+    def get_all_subsriptions(self, chat_id: int):
         """
         получить все подписки пользователя
         """
-        subs = Subscriptions.objects.filter(user=user_id)
+        print("chat_id=", chat_id)
+        subs = Subscriptions.objects.filter(user_id=chat_id)
+        subs = Subscriptions.objects.all()
         return subs
 
-    def get_problems_by_tag(self, tag='geometry', rating=None):
-        # выбираем все задачи с данным тэгом
-        if rating:
-            problems = Problems.objects.filter(tags__name=tag, rating=rating)
-        # rating=2000
+    def del_all_subsriptions(self, chat_id: int):
+        """
+        удалить все подписки пользователя
+        """
+        subs = Subscriptions.objects.filter(user_id=chat_id)
+        subs.delete()
+        return subs
+
+    def get_all_tags_for_problem(self, problem):
+        task_id = problem.id
+
+        task = Problems.objects.get(id=task_id)
+        tags = task.tags.all()
+
+        for tag in tags:
+            print(tag)
+
+    def get_problems_by_tag(self, tag='geometry', contest=None, number=5):
+        # выбираем задачи с данным тэгом
+        if contest:
+            problems = Problems.objects.filter(tags__name=tag, contest__name=contest).order_by('?')[:number]
         else:
-            problems = Problems.objects.filter(tags__name=tag)
-            # problems = Problems.objects.filter(rating=rating)
+            problems = Problems.objects.filter(tags__name=tag).order_by('?')[:number]
+            #.exclude(sendedproblems__isnull=False)  # Исключение уже отправленных задач
         return problems
-            # print("problems=", problems)
-        # for problem in problems:
-        #     print("problem=", problem, problem.get_url())
-        #     # courses = Student.objects.get(id=1).courses.all()
-        #     # для каждой задачи проверяем, сколько у нее тэгов
-        #     tags = Tags.objects.filter(problem__id=problem.id)
-        #     for one_tag in tags:
-        #         tag_count = one_tag.problem.count()
-
-        #         if tag_count == 1:
-        #             # У задачи только один тэг
-        #             print("Задача имеет только один тэг")
-        #             print("problem=", problem, problem.get_url())
-        #             print("one_tag=", one_tag, 'tag_count=', tag_count, "tags=", tags, "len(tags)=", len(tags))
-        #         else:
-        #             # У задачи больше одного тэга
-        #             print("Задача имеет более одного тэга")
-        #             print("problem=", problem, problem.get_url())
-        #             print("one_tag=", one_tag, 'tag_count=', tag_count, "tags=", tags, "len(tags)=", len(tags))
-        #             pass
-
-    # def get_all_problems():
-        # for tag in tag_list:
-        # tag ='expression parsing'
-
-        # создадим студента
-        # tom = Student.objects.create(name="Tom")
-        # tag = Tags.objects.create(name="Tom")
-        # tag.problem.create(name="Tom", contestId=55000, index='Э')
-        # p = Problems.objects.filter(tags__name=tag)
-
-        # создадим один курс и добавим его в список курсов Тома
-        # tom.courses.create(name="Algebra")
-
-        # получим все курсы студента
-        # courses = Student.objects.get(id=1).courses.all()
-
-        # получаем всех студентов, которые посещают курс Алгебра
-        # students = Student.objects.filter(courses__name="Algebra")
-
-        # # new_problems = Tags.objects.filter(name=tag)
-        # new_problems = Tags.objects.get(id=1).problem.all()
-
-            # self.get_problems_by_tag(tag=tag)
-            # k = Problems.objects.filter(tags__name=tag)
-            # # print("k=", k)
-            # for problem in k:
-            #     # print("problem=", problem, problem.get_url())
-            #     # courses = Student.objects.get(id=1).courses.all()
-            #     tags = Tags.objects.filter(problem__id=problem.id)
-            #     for one_tag in tags:
-            #         tag_count = one_tag.problem.count()
-
-
-            #         if tag_count == 1:
-            #             # У задачи только один тэг
-            #             print("Задача имеет только один тэг")
-            #             print("problem=", problem, problem.get_url())
-            #             print(one_tag, 'tag_count=', tag_count)
-            #         else:
-            #             # У задачи больше одного тэга
-            #             # print("Задача имеет более одного тэга")
-            #             pass
-
-
-
-        # problems = Problems.objects.filter(name=tag)
-        # problems = Problems.objects.all()[:5]
-        # # print(problems)
-        # # for problem in problems:
-        # #     print(problem, problem.__dict__)
-        # for tag in tags:
-        #     print(tag, tag.__dict__)
-
-
-    # from django.db import models
-
-    # class Course(models.Model):
-    #     name = models.CharField(max_length=30)
-
-    # class Student(models.Model):
-    #     name = models.CharField(max_length=30)
-    #     courses = models.ManyToManyField(Course)
-
-        # # создадим студента
-        # tom = Student.objects.create(name="Tom")
-
-        # # создадим один курс и добавим его в список курсов Тома
-        # tom.courses.create(name="Algebra")
-
-        # # получим все курсы студента
-        # courses = Student.objects.get(name="Tom").courses.all()
-
-        # # получаем всех студентов, которые посещают курс Алгебра
-        # students = Student.objects.filter(courses__name="Algebra")

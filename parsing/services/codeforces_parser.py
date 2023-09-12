@@ -1,6 +1,6 @@
 import requests
 import json
-from config.settings import URL, URL_PROBLEM, LOG_FILE
+from config.settings import URL, LOG_FILE
 from django.utils import timezone
 from parsing.models import Problems, Tags, Contest
 
@@ -24,12 +24,14 @@ class CodeforcesParser():
     Класс CodeforcesParser для работы с API сайта https://codeforces.com/,
     на котором размещены задачи
     """
+
     def __init__(self):
         self._url = URL
+        self.log_file_name = LOG_FILE
 
     def save_log(self, text: str) -> None:
         datetime_now = timezone.localtime(timezone.now()).strftime("%Y-%m-%d %H:%M:%S")
-        with open(LOG_FILE, "a", encoding="utf-8") as file:
+        with open(self.log_file_name, "a", encoding="utf-8") as file:
             file.write(f"{datetime_now} {text}\n")
 
     @staticmethod
@@ -69,7 +71,8 @@ class CodeforcesParser():
 
     def set_contest_level(self) -> None:
         """
-        заполнение поля contest
+        заполнение поля contest у всех объектов Problems,
+        у которых это поле не заполено
         """
         problems = Problems.objects.filter(contest__isnull=True)
         for problem in problems:
@@ -85,7 +88,7 @@ class CodeforcesParser():
     def url(self, url: str):
         self._url = url
 
-    def get_data_from_site(self) -> str:
+    def get_data_from_site(self) -> str | None:
         """
         метод отправляет запрос на сайт и возвращает полученные данные
         """
@@ -116,8 +119,8 @@ class CodeforcesParser():
             print("Ошибка при выполнении запроса")
             self.save_log("Ошибка при выполнении запроса")
 
-    def get_from_file(self):
-        with open("res.json", mode="r", encoding="utf-8") as file:
+    def get_from_file(self, filename="res.json"):
+        with open(filename, mode="r", encoding="utf-8") as file:
             result = json.load(file)
             return result
 
@@ -135,8 +138,6 @@ class CodeforcesParser():
             counter_problems = Problems.objects.all().count()
             counter_tags = Tags.objects.all().count()
 
-            with open("res.json", mode="w", encoding="utf-8") as file:
-                json.dump(result, file)
             for problem in problems:
                 # Проверяем корректность полученного словаря на наличие обязательных ключей
                 if 'name' in problem and \
@@ -233,7 +234,7 @@ class CodeforcesParser():
             # получаем или создаем задачу
             try:
                 problem_instance = Problems.objects.get(contestId=contestId, index=index)
-            except Problems.DoesNotExist as error:
+            except Problems.DoesNotExist:
                 problem_instance = Problems.objects.create(
                     name=name,
                     contestId=contestId,
@@ -244,12 +245,10 @@ class CodeforcesParser():
                     solved_count=solved_count,
                     contest=contest
                 )
-                # print("Ошибка ", error, "data=", data)
-            # except Exception as error:
-                # print("Ошибка ", error, "data=", data)
                 # Проверяем, есть ли уже связь между задачей и тэгом, если нет - создаем
-                if problem_instance and problem_instance not in tag_instanсe.problem.all():
-                    tag_instanсe.problem.add(problem_instance)
+            if problem_instance and problem_instance not in tag_instanсe.problem.all():
+                tag_instanсe.problem.add(problem_instance)
+        return problem_instance
 
     def get_solved_count(self, problemstatistics, contestId, index):
         # находим количество решений задачи

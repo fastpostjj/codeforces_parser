@@ -1,7 +1,10 @@
 from rest_framework.test import APITestCase
 from django.urls import reverse
 from user_auth.models import User
-from habits.tests import TEST_CHAT_ID_USER, TEST_USER_PASSWORD
+
+
+TEST_CHAT_ID_USER = 123
+TEST_USER_PASSWORD = 'test_password'
 
 # Create your tests here.
 

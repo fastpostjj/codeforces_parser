@@ -62,9 +62,9 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',
     'drf_yasg',
-    # 'rest_framework_simplejwt',
+    'rest_framework_simplejwt',
     'django_celery_beat',
-    # 'django_filters',
+    'django_filters',
 
     'parsing',
     'user_auth',
@@ -218,29 +218,25 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
-    # Закрыть все эндпоинты авторизацией
+    # Закрываем все эндпоинты авторизацией
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
     ],
 }
 
 # Настройки срока действия токенов
-# SIMPLE_JWT = {
-#     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15000),
-#     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
-# }
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15000),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+}
 
 CELERY_BEAT_SCHEDULE = {
     'check_update': {
-        'task': 'parsing.tasks.check_update',  # Путь к задаче
-        'schedule': timedelta(hours=1),  # Расписание выполнения задачи
+        'task': 'parsing.tasks.check_update',
+        'schedule': timedelta(hours=1),
     },
-    # 'check_telegram_message': {
-    #     'task': 'habits.tasks.check_message',  # Путь к задаче
-    #     'schedule': timedelta(minutes=2),  # Расписание выполнения задачи
-    # },
-    # 'telegram_send_one_message_bot': {
-    #     'task': 'habits.tasks.send_one_message_bot',  # Путь к задаче
-    #     'schedule': timedelta(minutes=1),  # Расписание выполнения задачи
-    # },
+    'send_messages_every_day': {
+        'task': 'parsing.tasks.send_messages_every_day',
+        'schedule': timedelta(days=1),
+    },
 }

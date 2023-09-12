@@ -1,0 +1,10 @@
+2023-09-11 22:22:24 2023-09-11 22:22:24.845244+00:00 send_message kwargs={kwargs} {chat_id} {text} {response.json()}
+
+2023-09-12 17:14:10 2023-09-12 17:14:10.977771+00:00 send_message kwargs={kwargs} {chat_id} {text} {response.json()}
+
+2023-09-12 20:42:51 2023-09-12 20:42:51.096610+00:00 send_message kwargs={kwargs} {chat_id} {text} {response.json()}
+
+2023-09-12 20:57:33 2023-09-12 20:57:33.065158+00:00 send_message kwargs={kwargs} {chat_id} {text} {response.json()}
+
+2023-09-12 21:05:11 2023-09-12 21:05:11.556401+00:00 send_message kwargs={kwargs} {chat_id} {text} {response.json()}
+

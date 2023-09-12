@@ -24,7 +24,7 @@ class Contest(models.Model):
         verbose_name_plural = 'контесты'
 
     def __str__(self):
-        return f"{self.name})"
+        return f"{self.name}"
 
 
 class Problems(models.Model):
@@ -35,7 +35,7 @@ class Problems(models.Model):
     index,
     points,
     rating,
-    type,
+    type_problem,
     solved_count,
     contest
     """

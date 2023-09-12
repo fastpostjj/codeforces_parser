@@ -8,19 +8,22 @@ from config.settings import NULLABLE
 class User(AbstractUser):
 
     """
+    Пользователь телеграм
+    chat_id
     email
     phone
     """
 
     username = None
+    email = None
     chat_id = models.IntegerField(
         verbose_name="chat_id",
         unique=True,
         **NULLABLE
     )
-    email = models.EmailField(
-        verbose_name='почта'
-    )
+    # email = models.EmailField(
+    #     verbose_name='почта'
+    # )
     phone = models.CharField(
         max_length=35,
         verbose_name='телефон',
