@@ -21,9 +21,10 @@ class User(AbstractUser):
         unique=True,
         **NULLABLE
     )
-    # email = models.EmailField(
-    #     verbose_name='почта'
-    # )
+    email = models.EmailField(
+        verbose_name='почта',
+        **NULLABLE
+    )
     phone = models.CharField(
         max_length=35,
         verbose_name='телефон',

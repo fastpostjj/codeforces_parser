@@ -12,17 +12,17 @@ subscriptions = {}
 # Handle '/start' and '/help'
 @bot.message_handler(commands=['help', 'start'])
 def send_welcome(message):
-    # Создаем объект клавиатуры
-    keyboard = types.InlineKeyboardMarkup(row_width=3)
     bot.reply_to(message, f"""\
 Привет, {message.chat.first_name}!
 Вы можете подписаться на ежедневную рассылку задач с сайта https://codeforces.com
-для этого выберите тему и сложность задачи.
-/unsubscribe - подписаться
-/subscribe - отписаться
+для этого укажите тему, рейтинг и уровень сложности задач.
+/subscribe тема <тема> рейтинг <рейтинг> уровень <уровень>
+/unsubscribe - отписаться
 /status - статус подписки
 /tags - список тем
-/level - уровень\
+/level - уровень
+/rating - значения рейтинга
+/sample - шаблон для подписки\
 """)
 
 
@@ -32,7 +32,18 @@ def send_tags(message):
     tags = GetProblems().get_all_tags()
     text = ""
     for tag in tags:
-        text += "/" + str(tag) + "\n"
+        text += str(tag.id) + " " + str(tag) + "\n"
+    bot.reply_to(message, text)
+
+
+# Handle '/rating'
+@bot.message_handler(commands=['rating'])
+def send_rating(message):
+    ratings = GetProblems().get_all_rating()
+    text = ""
+    for rating in ratings:
+        text += str(rating) + " "
+    text += "\n"
     bot.reply_to(message, text)
 
 
@@ -46,12 +57,21 @@ def send_level(message):
     bot.reply_to(message, text)
 
 
+# Handle '/sample'
+@bot.message_handler(commands=['sample'])
+def send_sample(message):
+    text = "Для того, чтобы создать подписку, отправьте сообщение с номером тега, рейтингом (не обязательно) и уровнем сложности:\n" +\
+        "/subscribe тема <номер тега> рейтинг <рейтинг> уровень <уровень>"
+    bot.reply_to(message, text)
+
+
 # Handle '/status'
 @bot.message_handler(commands=['status'])
 def send_status(message):
     text = ""
-    subs = GetProblems().get_all_subsriptions(chat_id=message.chat.id)
-    if subs.exists():
+    subs = GetProblems().get_all_subscriptions(chat_id=message.chat.id)
+    print(subs, subs.exists())
+    if not subs.exists():
         text = "У вас нет подписок"
     else:
         for sub in subs:
@@ -62,61 +82,31 @@ def send_status(message):
 # Handle '/subscribe'
 @bot.message_handler(commands=['subscribe'])
 def send_subscribe(message):
-    print("\nmessage.chat.id=", message.chat.id, "\n")
-    text = ""
-    # subs = GetProblems().make_subsriptions(chat_id=message.chat.id)
-    # if isinstance(subs, str):
-    #     text = subs
-    # elif subs is None:
-    #     text = "У вас нет подписок"
-    # else:
-    #     for sub in subs:
-    #         text += str(sub) + "\n"
-     # Получение текста сообщения
-    text_m = message.text.lower()
-    print("text_m=", text_m)
+    # Получение текста сообщения
+    text = message.text.lower()
+    subscriptions = GetProblems().get_sub_from_str(text)
+    subscriptions['chat_id'] = message.chat.id
 
-    # Проверка наличия ключевых слов
-    if 'тема' in text_m and message.chat.id in subscriptions:
-        # Получение выбранной темы
-        tema = text_m.split('тема ')[1]
-        print("tema=", tema)
-        # Добавление выбранной темы в подписку пользователя
-        subscriptions[message.chat.id]['tema'] = tema
-
-        # Отправка сообщения с вопросом об уровне
-        bot.send_message(message.chat.id, "Введите уровень для подписки:")
-
-    elif 'уровень' in text_m and message.chat.id in subscriptions:
-        # Получение выбранного уровня
-        uroven = text_m.split('уровень ')[1]
-        print("uroven=", uroven )
-        # Добавление выбранного уровня в подписку пользователя
-        subscriptions[message.chat.id]['uroven'] = uroven
-
-        # Отправка сообщения с вопросом о рейтинге
-        bot.send_message(message.chat.id, "Введите рейтинг для подписки:")
-
-    elif 'рейтинг' in text_m and message.chat.id in subscriptions:
-        # Получение выбранного рейтинга
-        rating = text_m.split('рейтинг ')[1]
-        print("rating=", rating)
-        # Добавление выбранного рейтинга в подписку пользователя
-        subscriptions[message.chat.id]['rating'] = rating
-
+    # проверяем корректность задания подписки
+    if GetProblems().check_subsriptions(subscriptions):
+        new_sub = GetProblems().make_subscriptions(subscriptions)
         # Отправка пользователю подтверждения подписки
-        bot.send_message(message.chat.id, f"Вы успешно подписались на рассылку!{subscriptions}")
+        bot.send_message(
+            message.chat.id,
+            f"Вы успешно подписались на рассылку!{new_sub}")
+    else:
+        bot.send_message(
+            message.chat.id,
+            "Ошибка при создании подписки. Попробуйте еще.")
 
-        # Очистка подписки пользователя
-        subscriptions[message.chat.id] = {}
-
-    bot.reply_to(message, text)
+    # Очистка словаря
+    subscriptions = {}
 
 
 # Handle '/unsubscribe'
 @bot.message_handler(commands=['unsubscribe'])
 def send_unsubscribe(message):
-    GetProblems().del_all_subsriptions(chat_id=message.chat.id)
+    GetProblems().del_all_subscriptions(chat_id=message.chat.id)
     text = "Подписки удалены\n"
     bot.reply_to(message, text)
 
@@ -124,7 +114,7 @@ def send_unsubscribe(message):
 # Handle all other messages with content_type 'text' (content_types defaults to ['text'])
 @bot.message_handler(func=lambda message: True)
 def echo_message(message):
-    bot.reply_to(message, message.text)
+    bot.reply_to(message, "Хм... не знаю, что сказать на это\n")
 
 
 def run_bot():

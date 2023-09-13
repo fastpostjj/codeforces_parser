@@ -54,19 +54,19 @@ class CodeforcesParser():
         Задачи, у которых число решений больше 100 000
         """
         if solved <= 10:
-            contest = Contest.objects.get(name="Уровень 1")
+            contest = Contest.objects.get(name="1")
         elif solved <= 100:
-            contest = Contest.objects.get(name="Уровень 2")
+            contest = Contest.objects.get(name="2")
         elif solved <= 500:
-            contest = Contest.objects.get(name="Уровень 3")
+            contest = Contest.objects.get(name="3")
         elif solved <= 1000:
-            contest = Contest.objects.get(name="Уровень 4")
+            contest = Contest.objects.get(name="4")
         elif solved <= 10000:
-            contest = Contest.objects.get(name="Уровень 5")
+            contest = Contest.objects.get(name="5")
         elif solved <= 100000:
-            contest = Contest.objects.get(name="Уровень 6")
+            contest = Contest.objects.get(name="6")
         else:
-            contest = Contest.objects.get(name="Уровень 7")
+            contest = Contest.objects.get(name="7")
         return contest
 
     def set_contest_level(self) -> None:
@@ -130,6 +130,9 @@ class CodeforcesParser():
         """
         self.save_log("check update")
         result = self.get_data_from_site()
+
+        # создаем уровни, если их нет
+        self.create_contests()
         # result = self.get_from_file()
 
         if result["status"] == "OK":
@@ -211,6 +214,40 @@ class CodeforcesParser():
             # причину, по которой запрос не получилось выполнить
             print(result["comment"])
             self.save_log(result["comment"])
+
+    def create_contests(self):
+        """
+        создание уровней
+        """
+        try:
+            Contest.objects.get(name="1").exists()
+        except Contest.DoesNotExist:
+            Contest.objects.create(name="1")
+        try:
+            Contest.objects.get(name="2").exists()
+        except Contest.DoesNotExist:
+            Contest.objects.create(name="2")
+        try:
+            Contest.objects.get(name="3").exists()
+        except Contest.DoesNotExist:
+            Contest.objects.create(name="3")
+        try:
+            Contest.objects.get(name="4").exists()
+        except Contest.DoesNotExist:
+            Contest.objects.create(name="4")
+        try:
+            Contest.objects.get(name="5").exists()
+        except Contest.DoesNotExist:
+            Contest.objects.create(name="5")
+        try:
+            Contest.objects.get(name="6").exists()
+        except Contest.DoesNotExist:
+            Contest.objects.create(name="6")
+        try:
+            Contest.objects.get(name="7").exists()
+        except Contest.DoesNotExist:
+            Contest.objects.create(name="7")
+
 
     def create_problem(self, data):
         name = data["name"]

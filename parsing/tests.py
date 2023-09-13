@@ -12,6 +12,7 @@ from django.utils import timezone
 from parsing.models import Problems, Tags, Contest
 
 
+TEST_USER_ID = 1
 data1 = {
     'name': 'Mighty Rock Tower',
     'index': 'M',
@@ -40,9 +41,9 @@ class TestGetProblems(TestCase):
     def setUp(self):
         self.test_creator = GetProblems()
         self.parser = CodeforcesParser()
-        create_contests()
-        data1['contest'] = Contest.objects.get(name="Уровень 2")
-        data2['contest'] = Contest.objects.get(name="Уровень 3")
+        CodeforcesParser().create_contests()
+        data1['contest'] = Contest.objects.get(name="2")
+        data2['contest'] = Contest.objects.get(name="3")
         self.parser.problem1 = self.parser.create_problem(data1)
         self.parser.problem2 = self.parser.create_problem(data2)
 
@@ -67,8 +68,118 @@ class TestGetProblems(TestCase):
         count_rating = self.test_creator.get_all_rating().count()
         self.assertEqual(count_rating, 2)
 
-    def make_subsriptions(self):
-        pass
+    def test_get_sub_from_str(self):
+        text1 = "/subscribe тема 1 уровень 2 рейтинг 4"
+        data1 = self.test_creator.get_sub_from_str(text1)
+        self.assertEqual(data1, {'theme': '1', 'contest': '2', 'rating': '4'})
+
+        text2 = "/subscribe"
+        data2 = self.test_creator.get_sub_from_str(text2)
+        self.assertEqual(data2, {})
+
+        text3 = "/subscribe уровень 2 тема 1"
+        data3 = self.test_creator.get_sub_from_str(text3)
+        self.assertEqual(data3, {'theme': '1', 'contest': '2'})
+
+    def test_check_subscriptions(self):
+        """
+        проверить правильность задания атрибутов подписки
+        """
+        tag = Tags.objects.all()[0].id
+        subscriptions1 = {}
+
+        # no keys - False
+        is_correct = self.test_creator.check_subscriptions(subscriptions=subscriptions1)
+        self.assertFalse(is_correct)
+
+        # all keys - True
+        subscriptions1['theme'] = tag
+        subscriptions1['rating'] = self.parser.problem1.rating
+        subscriptions1['contest'] = self.parser.problem1.contest.name
+        is_correct = self.test_creator.check_subscriptions(subscriptions=subscriptions1)
+        self.assertTrue(is_correct)
+
+        # wrong tag - False
+        subscriptions2 = {}
+        subscriptions2['theme'] = 250387
+        subscriptions2['rating'] = self.parser.problem1.rating
+        subscriptions2['contest'] = self.parser.problem1.contest.name
+        is_correct = self.test_creator.check_subscriptions(subscriptions=subscriptions2)
+        self.assertFalse(is_correct)
+
+        # wrong rating - False
+        subscriptions3 = {}
+        subscriptions3['theme'] = tag
+        subscriptions3['rating'] = 185634
+        subscriptions3['contest'] = self.parser.problem1.contest.name
+        is_correct = self.test_creator.check_subscriptions(subscriptions=subscriptions3)
+        self.assertFalse(is_correct)
+
+        # wrong contest - False
+        subscriptions4 = {}
+        subscriptions4['theme'] = tag
+        subscriptions4['rating'] = self.parser.problem1.rating
+        subscriptions4['contest'] = "adsfb"
+        is_correct = self.test_creator.check_subscriptions(subscriptions=subscriptions4)
+        self.assertFalse(is_correct)
+
+        # no rating - True
+        subscriptions5 = {}
+        subscriptions5['theme'] = tag
+        subscriptions5['contest'] = self.parser.problem1.contest.name
+        is_correct = self.test_creator.check_subscriptions(subscriptions=subscriptions5)
+        self.assertTrue(is_correct)
+
+        # no contest - False
+        subscriptions6 = {}
+        subscriptions6['theme'] = tag
+        is_correct = self.test_creator.check_subscriptions(subscriptions=subscriptions6)
+        self.assertFalse(is_correct)
+
+        # no tag - False
+        subscriptions7 = {}
+        subscriptions7['rating'] = self.parser.problem1.rating
+        subscriptions7['contest'] = self.parser.problem1.contest.name
+        is_correct = self.test_creator.check_subscriptions(subscriptions=subscriptions7)
+        self.assertFalse(is_correct)
+
+    def test_get_all_subscriptions(self):
+        """
+        получить все подписки пользователя
+        """
+        subs_count = self.test_creator.get_all_subscriptions(chat_id=TEST_USER_ID).count()
+        tag_id = Tags.objects.get(name='combinatorics').id
+        contest = "3"
+        test_data = {
+            'chat_id': TEST_USER_ID,
+            'theme': tag_id,
+            'contest': contest,
+            'rating': 800,
+        }
+        self.test_creator.make_subscriptions(test_data)
+        new_subs_count = self.test_creator.get_all_subscriptions(chat_id=TEST_USER_ID).count()
+        self.assertEqual(new_subs_count, subs_count + 1)
+
+    def test_make_subscriptions(self):
+        subscriptions = {}
+        tag = Tags.objects.all()[0].id
+        subscriptions['theme'] = tag
+        subscriptions['rating'] = self.parser.problem1.rating
+        subscriptions['contest'] = self.parser.problem1.contest.name
+        subscriptions['chat_id'] = TEST_USER_ID
+
+        is_correct = self.test_creator.check_subscriptions(subscriptions=subscriptions)
+        if is_correct:
+            sub = self.test_creator.make_subscriptions(subscriptions=subscriptions)
+        print(sub)
+
+
+
+    """
+    del_all_subscriptions
+    get_all_tags_for_problem
+    get_problems_by_tag
+        """
 
 
 class TestCodeforcesParser(TestCase):
@@ -76,7 +187,7 @@ class TestCodeforcesParser(TestCase):
         self.GOOD_URL = URL
         self.BAD_URL = URL + "smth"
         self.parser = CodeforcesParser()
-        create_contests()
+        CodeforcesParser().create_contests()
         self.test_problem1 = Problems.objects.create(
             name=data1['name'],
             index=data1['index'],
@@ -109,22 +220,22 @@ class TestCodeforcesParser(TestCase):
 
     def test_get_contest_level(self):
         # Проверка для различных значений переменной solved
-        self.assertEqual(self.parser.get_contest_level(5).name, "Уровень 1")
-        self.assertEqual(self.parser.get_contest_level(50).name, "Уровень 2")
-        self.assertEqual(self.parser.get_contest_level(200).name, "Уровень 3")
-        self.assertEqual(self.parser.get_contest_level(800).name, "Уровень 4")
-        self.assertEqual(self.parser.get_contest_level(5000).name, "Уровень 5")
-        self.assertEqual(self.parser.get_contest_level(50000).name, "Уровень 6")
-        self.assertEqual(self.parser.get_contest_level(150000).name, "Уровень 7")
+        self.assertEqual(self.parser.get_contest_level(5).name, "1")
+        self.assertEqual(self.parser.get_contest_level(50).name, "2")
+        self.assertEqual(self.parser.get_contest_level(200).name, "3")
+        self.assertEqual(self.parser.get_contest_level(800).name, "4")
+        self.assertEqual(self.parser.get_contest_level(5000).name, "5")
+        self.assertEqual(self.parser.get_contest_level(50000).name, "6")
+        self.assertEqual(self.parser.get_contest_level(150000).name, "7")
 
         # Проверка для граничных значений
-        self.assertEqual(self.parser.get_contest_level(10).name, "Уровень 1")
-        self.assertEqual(self.parser.get_contest_level(100).name, "Уровень 2")
-        self.assertEqual(self.parser.get_contest_level(500).name, "Уровень 3")
-        self.assertEqual(self.parser.get_contest_level(1000).name, "Уровень 4")
-        self.assertEqual(self.parser.get_contest_level(10000).name, "Уровень 5")
-        self.assertEqual(self.parser.get_contest_level(100000).name, "Уровень 6")
-        self.assertEqual(self.parser.get_contest_level(1000000).name, "Уровень 7")
+        self.assertEqual(self.parser.get_contest_level(10).name, "1")
+        self.assertEqual(self.parser.get_contest_level(100).name, "2")
+        self.assertEqual(self.parser.get_contest_level(500).name, "3")
+        self.assertEqual(self.parser.get_contest_level(1000).name, "4")
+        self.assertEqual(self.parser.get_contest_level(10000).name, "5")
+        self.assertEqual(self.parser.get_contest_level(100000).name, "6")
+        self.assertEqual(self.parser.get_contest_level(1000000).name, "7")
 
     def test_set_contest_level(self) -> None:
         """
@@ -186,6 +297,8 @@ class TestCodeforcesParserSaveLog(TestCase):
     def setUp(self):
         self.parser = CodeforcesParser()
         self.filename = "test_json.json"
+        with open(self.filename, mode="w", encoding="utf-8") as file:
+            file.write("")
 
     def test_save_log(self) -> None:
         self.parser.log_file_name = "testfile.txt"
@@ -195,7 +308,6 @@ class TestCodeforcesParserSaveLog(TestCase):
         with open(self.parser.log_file_name) as file:
             real_text = file.read()
         self.assertEqual(expected_text + '\n', real_text)
-        print("Запись в файл ", self.parser.log_file_name)
 
     def test_get_from_file(self):
         data = {
@@ -219,7 +331,7 @@ class TestCodeforcesParserSaveLog(TestCase):
         try:
             os.remove(self.parser.log_file_name)
         except OSError as error:
-            print(f"Ошибка при удалении файла {self.parser.log_file_name}: {error}")
+            print(f"Ошибка при удалении файла: {self.parser.log_file_name}: {error}")
 
         try:
             os.remove(self.filename)
@@ -250,46 +362,47 @@ class MessageCreatorTest(TestCase):
 
         url = problem1.get_url()
 
-        expected_text = "Задача 5674A name1. Сложность: 100, решений: 50, контест:" +\
+        expected_text = "Задача 5674A name1. Сложность: 100, решений: 50, контест: Уровень" +\
             " Test contest\nhttps://codeforces.com/problemset/problem/5674/A\n"
         actual_text = self.creator.make_text_for_send(problem1)
         self.assertEqual(actual_text, expected_text)
         self.assertEqual(url, "https://codeforces.com/problemset/problem/5674/A")
 
 
-def create_contests():
-        """
-        создание уровней
-        """
-        try:
-            Contest.objects.get(name="Уровень 1").exists()
-        except Contest.DoesNotExist:
-            Contest.objects.create(name="Уровень 1")
-        try:
-            Contest.objects.get(name="Уровень 2").exists()
-        except Contest.DoesNotExist:
-            Contest.objects.create(name="Уровень 2")
-        try:
-            Contest.objects.get(name="Уровень 3").exists()
-        except Contest.DoesNotExist:
-            Contest.objects.create(name="Уровень 3")
-        try:
-            Contest.objects.get(name="Уровень 4").exists()
-        except Contest.DoesNotExist:
-            Contest.objects.create(name="Уровень 4")
-        try:
-            Contest.objects.get(name="Уровень 5").exists()
-        except Contest.DoesNotExist:
-            Contest.objects.create(name="Уровень 5")
-        try:
-            Contest.objects.get(name="Уровень 6").exists()
-        except Contest.DoesNotExist:
-            Contest.objects.create(name="Уровень 6")
-        try:
-            Contest.objects.get(name="Уровень 7").exists()
-        except Contest.DoesNotExist:
-            Contest.objects.create(name="Уровень 7")
+# def create_contests():
+#         """
+#         создание уровней
+#         """
+#         try:
+#             Contest.objects.get(name="1").exists()
+#         except Contest.DoesNotExist:
+#             Contest.objects.create(name="1")
+#         try:
+#             Contest.objects.get(name="2").exists()
+#         except Contest.DoesNotExist:
+#             Contest.objects.create(name="2")
+#         try:
+#             Contest.objects.get(name="3").exists()
+#         except Contest.DoesNotExist:
+#             Contest.objects.create(name="3")
+#         try:
+#             Contest.objects.get(name="4").exists()
+#         except Contest.DoesNotExist:
+#             Contest.objects.create(name="4")
+#         try:
+#             Contest.objects.get(name="5").exists()
+#         except Contest.DoesNotExist:
+#             Contest.objects.create(name="5")
+#         try:
+#             Contest.objects.get(name="6").exists()
+#         except Contest.DoesNotExist:
+#             Contest.objects.create(name="6")
+#         try:
+#             Contest.objects.get(name="7").exists()
+#         except Contest.DoesNotExist:
+#             Contest.objects.create(name="7")
 
 
 if __name__ == '__main__':
-    create_contests()
+    # создаем уровни
+    CodeforcesParser().create_contests()
