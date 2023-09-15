@@ -8,3 +8,27 @@
 
 2023-09-12 21:05:11 2023-09-12 21:05:11.556401+00:00 send_message kwargs={kwargs} {chat_id} {text} {response.json()}
 
+2023-09-14 21:07:43 2023-09-14 21:07:43.375615+00:00 send_message kwargs={kwargs} {chat_id} {text} {response.json()}
+
+2023-09-14 21:12:29 2023-09-14 21:12:29.591799+00:00 send_message kwargs={kwargs} {chat_id} {text} {response.json()}
+
+2023-09-14 21:14:24 2023-09-14 21:14:24.083292+00:00 send_message kwargs={kwargs} {chat_id} {text} {response.json()}
+
+2023-09-14 22:58:18 2023-09-14 22:58:18.379556+00:00 send_message kwargs={kwargs} {chat_id} {text} {response.json()}
+
+2023-09-14 22:59:56 2023-09-14 22:59:56.289669+00:00 send_message kwargs={kwargs} {chat_id} {text} {response.json()}
+
+2023-09-14 23:00:54 2023-09-14 23:00:54.409978+00:00 send_message kwargs={kwargs} {chat_id} {text} {response.json()}
+
+2023-09-14 23:02:51 2023-09-14 23:02:51.896679+00:00 send_message kwargs={kwargs} {chat_id} {text} {response.json()}
+
+2023-09-14 23:15:25 2023-09-14 23:15:25.548487+00:00 send_message kwargs={kwargs} {chat_id} {text} {response.json()}
+
+2023-09-14 23:17:15 2023-09-14 23:17:15.599621+00:00 send_message kwargs={kwargs} {chat_id} {text} {response.json()}
+
+2023-09-14 23:17:15 2023-09-14 23:17:15.914138+00:00 send_message kwargs={kwargs} {chat_id} {text} {response.json()}
+
+2023-09-14 23:17:16 2023-09-14 23:17:16.200942+00:00 send_message kwargs={kwargs} {chat_id} {text} {response.json()}
+
+2023-09-14 23:17:16 2023-09-14 23:17:16.456052+00:00 send_message kwargs={kwargs} {chat_id} {text} {response.json()}
+

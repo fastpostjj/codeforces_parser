@@ -220,34 +220,54 @@ class CodeforcesParser():
         создание уровней
         """
         try:
-            Contest.objects.get(name="1").exists()
+            Contest.objects.get(name="1")
         except Contest.DoesNotExist:
-            Contest.objects.create(name="1")
+            Contest.objects.create(
+                name="1",
+                annotation="Задачи, у которых число решений менее 10"
+                                   )
         try:
-            Contest.objects.get(name="2").exists()
+            Contest.objects.get(name="2")
         except Contest.DoesNotExist:
-            Contest.objects.create(name="2")
+            Contest.objects.create(
+                name="2",
+                annotation="Задачи, у которых число решений от 10 до 100"
+                )
         try:
-            Contest.objects.get(name="3").exists()
+            Contest.objects.get(name="3")
         except Contest.DoesNotExist:
-            Contest.objects.create(name="3")
+            Contest.objects.create(
+                name="3",
+                annotation="Задачи, у которых число решений от 100 до 500"
+                )
         try:
-            Contest.objects.get(name="4").exists()
+            Contest.objects.get(name="4")
         except Contest.DoesNotExist:
-            Contest.objects.create(name="4")
+            Contest.objects.create(
+                name="4",
+                annotation="Задачи, у которых число решений от 500 до 1 000"
+                )
         try:
-            Contest.objects.get(name="5").exists()
+            Contest.objects.get(name="5")
         except Contest.DoesNotExist:
-            Contest.objects.create(name="5")
+            Contest.objects.create(
+                name="5",
+                annotation="Задачи, у которых число решений от 1 000 до 10 000"
+                )
         try:
-            Contest.objects.get(name="6").exists()
+            Contest.objects.get(name="6")
         except Contest.DoesNotExist:
-            Contest.objects.create(name="6")
+            Contest.objects.create(
+                name="6",
+                annotation="Задачи, у которых число решений от 10 000 до 100 000"
+                )
         try:
-            Contest.objects.get(name="7").exists()
+            Contest.objects.get(name="7")
         except Contest.DoesNotExist:
-            Contest.objects.create(name="7")
-
+            Contest.objects.create(
+                name="7",
+                annotation="Задачи, у которых число решений больше 100 000"
+                )
 
     def create_problem(self, data):
         name = data["name"]
@@ -285,7 +305,25 @@ class CodeforcesParser():
                 # Проверяем, есть ли уже связь между задачей и тэгом, если нет - создаем
             if problem_instance and problem_instance not in tag_instanсe.problem.all():
                 tag_instanсe.problem.add(problem_instance)
-        return problem_instance
+        if not tags or len(tags) == 0:
+            # тэгов нет
+            try:
+                problem_instance = Problems.objects.get(contestId=contestId, index=index)
+            except Problems.DoesNotExist:
+                problem_instance = Problems.objects.create(
+                    name=name,
+                    contestId=contestId,
+                    index=index,
+                    points=points,
+                    rating=rating,
+                    type_problem=type_problem,
+                    solved_count=solved_count,
+                    contest=contest
+                )
+        if problem_instance:
+            return problem_instance
+        else:
+            self.save_log("Ошибка создания задачи ", data)
 
     def get_solved_count(self, problemstatistics, contestId, index):
         # находим количество решений задачи

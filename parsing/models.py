@@ -81,7 +81,7 @@ class Problems(models.Model):
     contest = models.ForeignKey(
         Contest,
         verbose_name="Контест",
-        on_delete=models.DO_NOTHING,
+        on_delete=models.SET_NULL,
         **NULLABLE
     )
 
@@ -149,7 +149,7 @@ class Subscriptions(models.Model):
     )
 
     rating = models.IntegerField(
-        default=0,
+        default=None,
         verbose_name="уровень сложности",
         **NULLABLE
     )
@@ -159,66 +159,66 @@ class Subscriptions(models.Model):
     )
 
     class Meta:
-        verbose_name = 'Рассылка'
-        verbose_name_plural = 'Рассылки'
+        verbose_name = 'Подписка'
+        verbose_name_plural = 'Подписки'
 
     def __str__(self):
-        return f"Рассылка {self.user.first_name} {self.contest} {self.tag} {self.rating}"
+        return f"Рассылка {self.contest} тема {self.tag} рейтинг {self.rating}"
 
 
-class SendedProblems(models.Model):
-    """
-    отправленные пользователю задачи
-    """
-    user = models.ForeignKey(
-        User,
-        verbose_name="Пользователь",
-        on_delete=models.CASCADE
-    )
+# class SendedProblems(models.Model):
+#     """
+#     отправленные пользователю задачи
+#     """
+#     user = models.ForeignKey(
+#         User,
+#         verbose_name="Пользователь",
+#         on_delete=models.CASCADE
+#     )
 
-    problem = models.ForeignKey(
-        Problems,
-        verbose_name="Проблема",
-        on_delete=models.CASCADE
-    )
+#     problem = models.ForeignKey(
+#         Problems,
+#         verbose_name="Проблема",
+#         on_delete=models.CASCADE
+#     )
 
-    datetimesend = models.DateTimeField(
-        verbose_name="Дата и время отправки"
-    )
+#     datetimesend = models.DateTimeField(
+#         verbose_name="Дата и время отправки"
+#     )
 
-    class Meta:
-        verbose_name = 'отправленная задача'
-        verbose_name_plural = 'отправленные задачи'
+#     class Meta:
+#         verbose_name = 'отправленная задача'
+#         verbose_name_plural = 'отправленные задачи'
 
-    def __str__(self):
-        return f"{self.user} {self.problem} {self.datetimesend}"
+#     def __str__(self):
+#         return f"{self.user} {self.problem} {self.datetimesend}"
 
 
-class BotMessages(models.Model):
-    """
-    Сообщения пользователей, полученные от бота
-    message_id
-    message_text
-    user
-    """
-    message_id = models.IntegerField(
-        verbose_name="id сообщения"
-    )
-    message_text = models.CharField(
-        verbose_name="текст сообщения",
-        max_length=300,
-        **NULLABLE
-    )
-    user = models.ForeignKey(
-        User,
-        verbose_name="пользователь",
-        on_delete=models.SET_NULL,
-        **NULLABLE
-    )
+# class BotMessages(models.Model):
+#     """
+#     Сообщения пользователей, полученные от бота
+#     message_id
+#     message_text
+#     user
+#     """
+#     message_id = models.IntegerField(
+#         verbose_name="id сообщения"
+#     )
+#     message_text = models.CharField(
+#         verbose_name="текст сообщения",
+#         max_length=300,
+#         **NULLABLE
+#     )
+#     user = models.ForeignKey(
+#         User,
+#         verbose_name="пользователь",
+#         on_delete=models.SET_NULL,
+#         **NULLABLE
+#     )
 
-    def __str__(self):
-        return f"id:{self.message_id} {self.message_text} {self.user}"
+#     def __str__(self):
+#         return f"id:{self.message_id} {self.message_text} {self.user}"
 
-    class Meta:
-        verbose_name = 'сообщение'
-        verbose_name_plural = 'сообщения'
+#     class Meta:
+#         verbose_name = 'сообщение'
+#         verbose_name_plural = 'сообщения'

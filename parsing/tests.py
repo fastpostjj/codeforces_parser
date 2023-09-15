@@ -4,12 +4,10 @@ from parsing.services.services import GetProblems
 from parsing.services.bot_message import Bot_message
 from parsing.services.message_creator import MessageCreator, send_messages
 from parsing.services.codeforces_parser import CodeforcesParser
-from config.settings import URL, URL_PROBLEM, LOG_FILE
-import requests
+from config.settings import URL
 import json
 import os
 from django.utils import timezone
-from parsing.models import Problems, Tags, Contest
 
 
 TEST_USER_ID = 1
@@ -21,10 +19,18 @@ data1 = {
     'contestId': 1866,
     'type': 'PROGRAMMING',
     'solved_count': 322,
-    'tags': ['brute force', 'combinatorics', 'dp', 'math', 'probabilities']}
+    'tags': ['brute force', 'combinatorics', 'dp', 'math', 'probabilities']
+    }
 data2 = {
-    'name': 'Lihmuf Balling', 'index': 'L', 'points': 0, 'rating': 2800, 'contestId': 1866, 'type': 'PROGRAMMING', 'solved_count': 418, 'tags': ['binary search', 'brute force', 'math']}
-# , 'contest': '<Contest: Уровень 3>'}
+    'name': 'Lihmuf Balling',
+    'index': 'L',
+    'points': 0,
+    'rating': 2800,
+    'contestId': 1866,
+    'type': 'PROGRAMMING',
+    'solved_count': 418,
+    'tags': ['binary search', 'brute force', 'math']
+    }
 data3 = {
     'name': 'Keen Tree Calculation',
     'index': 'K',
@@ -33,8 +39,25 @@ data3 = {
     'contestId': 1866,
     'type': 'PROGRAMMING',
     'solved_count': 241,
-    'tags': ['binary search', 'data structures', 'dp', 'geometry', 'graphs', 'implementation', 'trees']}
-    # ,    'contest': '<Contest: Уровень 3>'}
+    'tags': ['binary search', 'data structures', 'dp', 'geometry', 'graphs', 'implementation', 'trees']
+    }
+
+
+class TestCodeforcesParser_create_contests(TestCase):
+    def setUp(self):
+        self.parser = CodeforcesParser()
+
+    def test_create_contests(self):
+        self.parser.create_contests()
+
+        for i in range(1, 8):
+            contest = Contest.objects.get(name=str(i))
+            self.assertIsNotNone(contest)
+            self.assertEqual(contest.name, str(i))
+
+    def tearDown(self):
+        # Очищаем базу данных после теста
+        Contest.objects.all().delete()
 
 
 class TestGetProblems(TestCase):
@@ -93,10 +116,13 @@ class TestGetProblems(TestCase):
         self.assertFalse(is_correct)
 
         # all keys - True
-        subscriptions1['theme'] = tag
-        subscriptions1['rating'] = self.parser.problem1.rating
-        subscriptions1['contest'] = self.parser.problem1.contest.name
-        is_correct = self.test_creator.check_subscriptions(subscriptions=subscriptions1)
+        data3['contest'] = Contest.objects.get(name="4")
+        self.parser.problem3 = self.parser.create_problem(data3)
+        subscriptions3 = {}
+        subscriptions3['theme'] = tag
+        subscriptions3['rating'] = self.parser.problem3.rating
+        subscriptions3['contest'] = self.parser.problem3.contest.name
+        is_correct = self.test_creator.check_subscriptions(subscriptions=subscriptions3)
         self.assertTrue(is_correct)
 
         # wrong tag - False
@@ -162,27 +188,111 @@ class TestGetProblems(TestCase):
 
     def test_make_subscriptions(self):
         subscriptions = {}
-        tag = Tags.objects.all()[0].id
-        subscriptions['theme'] = tag
-        subscriptions['rating'] = self.parser.problem1.rating
+        tag = Tags.objects.all()[0]
+        tag_id = tag.id
+        subscriptions['theme'] = tag_id
         subscriptions['contest'] = self.parser.problem1.contest.name
         subscriptions['chat_id'] = TEST_USER_ID
 
+        # 1-й вариант без рейтинга
         is_correct = self.test_creator.check_subscriptions(subscriptions=subscriptions)
         if is_correct:
+            # self.assertEqual(sub.rating, None)
             sub = self.test_creator.make_subscriptions(subscriptions=subscriptions)
-        print(sub)
+            self.assertEqual(sub.tag, tag)
+            # self.assertEqual(sub.rating, subscriptions['rating'])
+            self.assertEqual(sub.contest.name, subscriptions['contest'])
+            self.assertEqual(sub.user.chat_id, TEST_USER_ID)
+            sub.delete()
+
+        # 2-й вариант с рейтингом
+        subscriptions['rating'] = self.parser.problem1.rating
+        is_correct = self.test_creator.check_subscriptions(subscriptions=subscriptions)
+        if is_correct:
+            self.assertEqual(sub.rating, None)
+            sub = self.test_creator.make_subscriptions(subscriptions=subscriptions)
+            self.assertEqual(sub.tag, tag)
+            self.assertEqual(sub.rating, subscriptions['rating'])
+            self.assertEqual(sub.contest.name, subscriptions['contest'])
+            self.assertEqual(sub.user.chat_id, TEST_USER_ID)
+            sub.delete()
 
 
+    def test_del_all_subscriptions(self):
+        subscriptions = {
+            'chat_id': TEST_USER_ID,
+            'theme': Tags.objects.all().order_by('id')[0].id,
+            'contest': self.parser.problem1.contest.name,
+            'rating': self.parser.problem1.rating
+        }
+        self.test_creator.make_subscriptions(subscriptions=subscriptions)
+        self.test_creator.del_all_subscriptions(TEST_USER_ID)
+        self.assertEquals(Subscriptions.objects.filter(user=TEST_USER_ID).count(), 0)
 
-    """
-    del_all_subscriptions
-    get_all_tags_for_problem
-    get_problems_by_tag
-        """
+    def test_get_problems_by_tag(self):
+        number = 5
+        tag = "test_tag"
+        problem_name = "test problem name"
+        contest = Contest.objects.get(name=3)
+        if not Tags.objects.filter(name=tag).exists():
+            tag_instanсe = Tags.objects.create(
+                name=tag
+            )
+        else:
+            tag_instanсe = Tags.objects.get(name=tag)
+
+        try:
+            problem_instance = Problems.objects.get(contestId=1515, index="T")
+        except Problems.DoesNotExist:
+            problem_instance = Problems.objects.create(
+                name=problem_name,
+                contestId=1515,
+                index="T",
+                points=30,
+                rating=None,
+                type_problem="type_problem",
+                solved_count=500,
+                contest=contest
+            )
+            # Проверяем, есть ли уже связь между задачей и тэгом, если нет - создаем
+        if problem_instance and problem_instance not in tag_instanсe.problem.all():
+            tag_instanсe.problem.add(problem_instance)
+
+        try:
+            problem_instance = Problems.objects.get(contestId=1616, index="T")
+        except Problems.DoesNotExist:
+            problem_instance = Problems.objects.create(
+                name="Test2 problem_name",
+                contestId=1616,
+                index="T",
+                points=30,
+                rating=700,
+                type_problem="type_problem",
+                solved_count=500,
+                contest=contest
+            )
+            # Проверяем, есть ли уже связь между задачей и тэгом, если нет - создаем
+        if problem_instance and problem_instance not in tag_instanсe.problem.all():
+            tag_instanсe.problem.add(problem_instance)
+
+        pr = self.test_creator.get_problems_by_tag(
+            tag=tag,
+            contest=contest.name,
+            rating=700,
+            number=number)
+        self.assertEqual(pr.count(), 1)
+
+        pr = self.test_creator.get_problems_by_tag(
+            tag=tag,
+            contest=contest.name,
+            number=number)
+        self.assertEqual(pr.count(), 2)
 
 
-class TestCodeforcesParser(TestCase):
+    # get_all_tags_for_problem
+
+
+class Test_CodeforcesParser(TestCase):
     def setUp(self):
         self.GOOD_URL = URL
         self.BAD_URL = URL + "smth"
@@ -270,6 +380,31 @@ class TestCodeforcesParser(TestCase):
         self.parser.create_problem(data)
         self.assertEqual(count_problems + 1, Problems.objects.all().count())
         self.assertEqual(count_tags + len(data3["tags"]), Tags.objects.all().count())
+
+    def test_create_problem_no_tags(self):
+        count_problems = Problems.objects.all().count()
+        # count_tags = Tags.objects.all().count()
+        contest = self.parser.get_contest_level(data3["solved_count"])
+        data = {
+                        "name": data3["name"],
+                        "index": data3["index"],
+                        "points": data3["points"],
+                        "rating": data3["rating"],
+                        "contestId": data3["contestId"],
+                        "type": data3["type"],
+                        "solved_count": data3["solved_count"],
+                        "tags": [],
+                        "contest": contest,
+                    }
+        new_problem = self.parser.create_problem(data)
+        self.assertEqual(new_problem.name, data['name'])
+        self.assertEqual(new_problem.index, data['index'])
+        self.assertEqual(new_problem.points, data['points'])
+        self.assertEqual(new_problem.contestId, data['contestId'])
+        self.assertEqual(new_problem.type_problem, data['type'])
+        self.assertEqual(new_problem.solved_count, data['solved_count'])
+        self.assertEqual(new_problem.contest, data['contest'])
+        self.assertEqual(count_problems + 1, Problems.objects.all().count())
 
 
 class TestCodeforcesParserAPI(TestCase):
@@ -367,42 +502,3 @@ class MessageCreatorTest(TestCase):
         actual_text = self.creator.make_text_for_send(problem1)
         self.assertEqual(actual_text, expected_text)
         self.assertEqual(url, "https://codeforces.com/problemset/problem/5674/A")
-
-
-# def create_contests():
-#         """
-#         создание уровней
-#         """
-#         try:
-#             Contest.objects.get(name="1").exists()
-#         except Contest.DoesNotExist:
-#             Contest.objects.create(name="1")
-#         try:
-#             Contest.objects.get(name="2").exists()
-#         except Contest.DoesNotExist:
-#             Contest.objects.create(name="2")
-#         try:
-#             Contest.objects.get(name="3").exists()
-#         except Contest.DoesNotExist:
-#             Contest.objects.create(name="3")
-#         try:
-#             Contest.objects.get(name="4").exists()
-#         except Contest.DoesNotExist:
-#             Contest.objects.create(name="4")
-#         try:
-#             Contest.objects.get(name="5").exists()
-#         except Contest.DoesNotExist:
-#             Contest.objects.create(name="5")
-#         try:
-#             Contest.objects.get(name="6").exists()
-#         except Contest.DoesNotExist:
-#             Contest.objects.create(name="6")
-#         try:
-#             Contest.objects.get(name="7").exists()
-#         except Contest.DoesNotExist:
-#             Contest.objects.create(name="7")
-
-
-if __name__ == '__main__':
-    # создаем уровни
-    CodeforcesParser().create_contests()

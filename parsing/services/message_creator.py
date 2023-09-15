@@ -20,7 +20,7 @@ class MessageCreator():
 
     def make_text_for_send(self, problems):
         text = ""
-        if not isinstance(problems, Problems) and len(problems) > 1:
+        if not isinstance(problems, Problems):
             for problem in problems:
                 text += str(problem) + "\n" + problem.get_url() + "\n"
         else:
@@ -36,18 +36,19 @@ def send_messages():
     """
     выбираем все активные подписки и рассылаем задачи
     """
-    number = 5 # количество отправляемых задач за один раз
+    number = 5  # количество отправляемых задач за один раз для каждой подписки
     creator = MessageCreator()
     subs = creator.get_subscriptions()
     for sub in subs:
         problems = GetProblems().get_problems_by_tag(
             tag=sub.tag,
-            contest=sub.contest,
+            contest=sub.contest.name,
+            rating=sub.rating,
             number=number
             )
         text = creator.make_text_for_send(problems)
         bot = Bot_message()
-        return bot.send_message(
+        bot.send_message(
             chat_id=sub.user.chat_id,
             text=text
             )

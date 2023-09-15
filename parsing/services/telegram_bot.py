@@ -1,8 +1,6 @@
 import telebot
-from telebot import types
 from config.settings import BOT_TOKEN
 from parsing.services.services import GetProblems
-from parsing.models import Subscriptions
 
 
 bot = telebot.TeleBot(BOT_TOKEN)
@@ -53,7 +51,7 @@ def send_level(message):
     contests = GetProblems().get_all_levels()
     text = ""
     for contest in contests:
-        text += str(contest) + " " + contest.annotation + " \n"
+        text += str(contest) + " " + str(contest.annotation) + " \n"
     bot.reply_to(message, text)
 
 
@@ -68,9 +66,8 @@ def send_sample(message):
 # Handle '/status'
 @bot.message_handler(commands=['status'])
 def send_status(message):
-    text = ""
+    text = "Ваши подписки\n"
     subs = GetProblems().get_all_subscriptions(chat_id=message.chat.id)
-    print(subs, subs.exists())
     if not subs.exists():
         text = "У вас нет подписок"
     else:
@@ -82,18 +79,24 @@ def send_status(message):
 # Handle '/subscribe'
 @bot.message_handler(commands=['subscribe'])
 def send_subscribe(message):
+    getproblems = GetProblems()
     # Получение текста сообщения
     text = message.text.lower()
-    subscriptions = GetProblems().get_sub_from_str(text)
+    subscriptions = getproblems.get_sub_from_str(text)
     subscriptions['chat_id'] = message.chat.id
 
     # проверяем корректность задания подписки
-    if GetProblems().check_subsriptions(subscriptions):
-        new_sub = GetProblems().make_subscriptions(subscriptions)
-        # Отправка пользователю подтверждения подписки
-        bot.send_message(
-            message.chat.id,
-            f"Вы успешно подписались на рассылку!{new_sub}")
+    if getproblems.check_subscriptions(subscriptions):
+        if getproblems.is_subscriptions_exists(subscriptions):
+            bot.send_message(
+                message.chat.id,
+                "Такая подписка уже существует.")
+        else:
+            new_sub = getproblems.make_subscriptions(subscriptions)
+            # Отправка пользователю подтверждения подписки
+            bot.send_message(
+                message.chat.id,
+                f"Вы успешно подписались на рассылку!\n{new_sub}")
     else:
         bot.send_message(
             message.chat.id,

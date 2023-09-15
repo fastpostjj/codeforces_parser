@@ -7,6 +7,7 @@ from user_auth.serializer import UserSerializer, MyTokenObtainPairSerializer
 # Create your views here.
 
 class UserViewSet(viewsets.ModelViewSet):
+    """ представление для модели User"""
     serializer_class = UserSerializer
     queryset = User.objects.all()
 

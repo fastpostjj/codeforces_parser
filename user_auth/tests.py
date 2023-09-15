@@ -6,8 +6,6 @@ from user_auth.models import User
 TEST_CHAT_ID_USER = 123
 TEST_USER_PASSWORD = 'test_password'
 
-# Create your tests here.
-
 
 class UserCreateUpdateTest(APITestCase):
     def setUp(self):
@@ -26,7 +24,6 @@ class UserCreateUpdateTest(APITestCase):
         )
         self.user.set_password(TEST_USER_PASSWORD)
         self.user.save()
-        # self.client.force_authenticate(self.user)
         self.url_token = reverse('token_obtain_pair')
         data = {"chat_id": self.user,
                 "password": TEST_USER_PASSWORD
@@ -44,7 +41,6 @@ class UserCreateUpdateTest(APITestCase):
         self.chat_id2 = TEST_CHAT_ID_USER+1
         self.email2 = "test2@example.com"
         self.password2 = TEST_USER_PASSWORD+"2"
-        # self.client.force_authenticate(user=self.chat_id2)
 
         url = reverse("user-list")
         data = {"chat_id": self.chat_id2,

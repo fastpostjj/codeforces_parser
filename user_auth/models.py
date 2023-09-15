@@ -15,7 +15,6 @@ class User(AbstractUser):
     """
 
     username = None
-    email = None
     chat_id = models.IntegerField(
         verbose_name="chat_id",
         unique=True,
