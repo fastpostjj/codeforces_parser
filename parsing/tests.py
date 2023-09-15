@@ -475,9 +475,13 @@ class TestCodeforcesParserSaveLog(TestCase):
         datetime_now = timezone.localtime(timezone.now()).strftime("%Y-%m-%d %H:%M:%S")
         self.parser.save_log("test")
         expected_text = datetime_now + " test"
-        with open(self.parser.log_file_name) as file:
+        with open(self.parser.log_file_name, "r") as file:
             real_text = file.read()
         self.assertEqual(expected_text + '\n', real_text)
+        try:
+            os.remove(self.parser.log_file_name)
+        except OSError as error:
+            print(f"Ошибка при удалении файла {self.parser.log_file_name}: {error}")
 
     def test_get_from_file(self):
         data = {
