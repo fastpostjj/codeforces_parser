@@ -1,5 +1,7 @@
 /Task
 /venv
+.venv/
+/.venv
 /.idea
 .vscode/
 /__pycache__
