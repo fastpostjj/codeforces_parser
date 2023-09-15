@@ -312,8 +312,6 @@ class TestGetProblems(TestCase):
             number=number)
         self.assertEqual(pr.count(), 2)
 
-    # get_all_tags_for_problem
-
 
 class Test_CodeforcesParser(TestCase):
     def setUp(self) -> None:
@@ -480,10 +478,6 @@ class TestCodeforcesParserSaveLog(TestCase):
         with open(self.parser.log_file_name) as file:
             real_text = file.read()
         self.assertEqual(expected_text + '\n', real_text)
-        try:
-            os.remove(self.parser.log_file_name)
-        except OSError as error:
-            print(f"Ошибка при удалении файла: {self.parser.log_file_name}: {error}")
 
     def test_get_from_file(self):
         data = {
@@ -503,6 +497,7 @@ class TestCodeforcesParserSaveLog(TestCase):
         }
         self.assertEqual(result, expected_result)
 
+    def tearDown(self) -> None:
         try:
             os.remove(self.filename)
         except OSError as error:

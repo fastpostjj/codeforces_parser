@@ -2,7 +2,6 @@ requests
 django
 djangorestframework
 telebot
-psycopg2-binary
 python-dotenv
 django-cors-headers
 drf_yasg
@@ -13,3 +12,6 @@ celery
 django_celery_beat
 django-filter
 djangorestframework-simplejwt
+
+psycopg
+eventlet
