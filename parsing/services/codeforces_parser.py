@@ -116,7 +116,6 @@ class CodeforcesParser():
                 print(response.json()["comment"])
                 self.save_log(response.json()["comment"])
         else:
-            print("Ошибка при выполнении запроса")
             self.save_log("Ошибка при выполнении запроса")
 
     def get_from_file(self, filename="res.json"):
@@ -269,6 +268,30 @@ class CodeforcesParser():
                 annotation="Задачи, у которых число решений больше 100 000"
                 )
 
+    def update_problem(self, problem_instance, data):
+        name = data["name"]
+        index = data["index"]
+        points = data["points"]
+        rating = data["rating"]
+        contestId = data["contestId"]
+        type_problem = data["type"]
+        solved_count = data["solved_count"]
+        contest = data["contest"]
+        if contestId == problem_instance.contestId and index == problem_instance.index:
+            if problem_instance.name != name:
+                problem_instance.name = name
+            if problem_instance.points != points:
+                problem_instance.points = points
+            if problem_instance.rating != rating:
+                problem_instance.rating = rating
+            if problem_instance.type_problem != type_problem:
+                problem_instance.type_problem = type_problem
+            if problem_instance.solved_count != solved_count:
+                problem_instance.solved_count = solved_count
+            if problem_instance.contest != contest:
+                problem_instance.contest = contest
+        return problem_instance
+
     def create_problem(self, data):
         name = data["name"]
         index = data["index"]
@@ -291,6 +314,9 @@ class CodeforcesParser():
             # получаем или создаем задачу
             try:
                 problem_instance = Problems.objects.get(contestId=contestId, index=index)
+
+                # проверяем изменились ли поля задачи кроме contestId и index
+                self.update_problem(problem_instance, data)
             except Problems.DoesNotExist:
                 problem_instance = Problems.objects.create(
                     name=name,

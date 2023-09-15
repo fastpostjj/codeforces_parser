@@ -1,8 +1,7 @@
 from django.test import TestCase
 from parsing.models import Subscriptions, Problems, Tags, Contest
 from parsing.services.services import GetProblems
-from parsing.services.bot_message import Bot_message
-from parsing.services.message_creator import MessageCreator, send_messages
+from parsing.services.message_creator import MessageCreator
 from parsing.services.codeforces_parser import CodeforcesParser
 from config.settings import URL
 import json
@@ -40,6 +39,26 @@ data3 = {
     'type': 'PROGRAMMING',
     'solved_count': 241,
     'tags': ['binary search', 'data structures', 'dp', 'geometry', 'graphs', 'implementation', 'trees']
+    }
+data4 = {
+    'name': 'В поисках истины (простая версия).',
+    'index': 'G1',
+    'points': 0,
+    'rating': 2200,
+    'contestId': 1840,
+    'type': 'PROGRAMMING',
+    'solved_count': 1954,
+    'tags': ['binary search', 'implementation', 'trees']
+    }
+data5 = {
+    'name': 'В поисках истины (простая версия).new',
+    'index': 'G1',
+    'points': 0,
+    'rating': 2500,
+    'contestId': 1840,
+    'type': 'PROGRAMMING',
+    'solved_count': 1954,
+    'tags': ['binary search', 'implementation', 'trees', 'geometry']
     }
 
 
@@ -103,6 +122,10 @@ class TestGetProblems(TestCase):
         text3 = "/subscribe уровень 2 тема 1"
         data3 = self.test_creator.get_sub_from_str(text3)
         self.assertEqual(data3, {'theme': '1', 'contest': '2'})
+
+        text4 = "/subscribe тема 31  уровень 4 рейтинг 800"
+        data4 = self.test_creator.get_sub_from_str(text4)
+        self.assertEqual(data4, {'theme': '31', 'contest': '4', 'rating': '800'})
 
     def test_check_subscriptions(self):
         """
@@ -217,7 +240,6 @@ class TestGetProblems(TestCase):
             self.assertEqual(sub.user.chat_id, TEST_USER_ID)
             sub.delete()
 
-
     def test_del_all_subscriptions(self):
         subscriptions = {
             'chat_id': TEST_USER_ID,
@@ -231,6 +253,8 @@ class TestGetProblems(TestCase):
 
     def test_get_problems_by_tag(self):
         number = 5
+
+        # Создаем тестовые тэги и задачи
         tag = "test_tag"
         problem_name = "test problem name"
         contest = Contest.objects.get(name=3)
@@ -288,12 +312,11 @@ class TestGetProblems(TestCase):
             number=number)
         self.assertEqual(pr.count(), 2)
 
-
     # get_all_tags_for_problem
 
 
 class Test_CodeforcesParser(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.GOOD_URL = URL
         self.BAD_URL = URL + "smth"
         self.parser = CodeforcesParser()
@@ -305,7 +328,7 @@ class Test_CodeforcesParser(TestCase):
             solved_count=15
         )
 
-    def test_get_solved_count(self):
+    def test_get_solved_count(self) -> None:
         """
         проверяем количество решений задачи
         """
@@ -328,7 +351,7 @@ class Test_CodeforcesParser(TestCase):
             )
         self.assertEqual(solved, 895)
 
-    def test_get_contest_level(self):
+    def test_get_contest_level(self) -> None:
         # Проверка для различных значений переменной solved
         self.assertEqual(self.parser.get_contest_level(5).name, "1")
         self.assertEqual(self.parser.get_contest_level(50).name, "2")
@@ -362,7 +385,7 @@ class Test_CodeforcesParser(TestCase):
         number = Problems.objects.filter(contest__isnull=True).count()
         self.assertEqual(number, 0)
 
-    def test_create_problem(self):
+    def test_create_problem(self) -> None:
         count_problems = Problems.objects.all().count()
         count_tags = Tags.objects.all().count()
         contest = self.parser.get_contest_level(data3["solved_count"])
@@ -383,7 +406,6 @@ class Test_CodeforcesParser(TestCase):
 
     def test_create_problem_no_tags(self):
         count_problems = Problems.objects.all().count()
-        # count_tags = Tags.objects.all().count()
         contest = self.parser.get_contest_level(data3["solved_count"])
         data = {
                         "name": data3["name"],
@@ -405,6 +427,20 @@ class Test_CodeforcesParser(TestCase):
         self.assertEqual(new_problem.solved_count, data['solved_count'])
         self.assertEqual(new_problem.contest, data['contest'])
         self.assertEqual(count_problems + 1, Problems.objects.all().count())
+
+    def test_update_problem(self) -> None:
+        data4['contest'] = self.parser.get_contest_level(data4['solved_count'])
+        data5['contest'] = self.parser.get_contest_level(data5['solved_count'])
+
+        test_update_problem = self.parser.create_problem(data4)
+
+        test_update_problem_new = self.parser.update_problem(test_update_problem, data5)
+        self.assertEqual(test_update_problem_new.name, data5['name'])
+        self.assertEqual(test_update_problem_new.points, data5['points'])
+        self.assertEqual(test_update_problem_new.rating, data5['rating'])
+        self.assertEqual(test_update_problem_new.type_problem, data5['type'])
+        self.assertEqual(test_update_problem_new.solved_count, data5['solved_count'])
+        self.assertEqual(test_update_problem_new.contest, data5['contest'])
 
 
 class TestCodeforcesParserAPI(TestCase):
@@ -429,9 +465,10 @@ class TestCodeforcesParserAPI(TestCase):
 
 
 class TestCodeforcesParserSaveLog(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.parser = CodeforcesParser()
         self.filename = "test_json.json"
+        self.parser.log_file_name = "test_json.json"
         with open(self.filename, mode="w", encoding="utf-8") as file:
             file.write("")
 
@@ -443,6 +480,10 @@ class TestCodeforcesParserSaveLog(TestCase):
         with open(self.parser.log_file_name) as file:
             real_text = file.read()
         self.assertEqual(expected_text + '\n', real_text)
+        try:
+            os.remove(self.parser.log_file_name)
+        except OSError as error:
+            print(f"Ошибка при удалении файла: {self.parser.log_file_name}: {error}")
 
     def test_get_from_file(self):
         data = {
@@ -461,12 +502,6 @@ class TestCodeforcesParserSaveLog(TestCase):
             'contestId': 1
         }
         self.assertEqual(result, expected_result)
-
-    def tearDown(self):
-        try:
-            os.remove(self.parser.log_file_name)
-        except OSError as error:
-            print(f"Ошибка при удалении файла: {self.parser.log_file_name}: {error}")
 
         try:
             os.remove(self.filename)

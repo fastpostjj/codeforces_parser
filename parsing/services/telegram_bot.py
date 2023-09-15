@@ -122,35 +122,3 @@ def echo_message(message):
 
 def run_bot():
     bot.infinity_polling()
-
-
-#     # Определяем обработчик команды /start
-# @bot.message_handler(commands=['start'])
-# def start(message):
-#     # Создаем объект клавиатуры
-#     keyboard = types.InlineKeyboardMarkup(row_width=3)
-
-#     # Генерируем кнопки для тэгов
-#     tags = ['tag1', 'tag2', 'tag3', 'tag4', 'tag5', 'tag6', 'tag7', 'tag8', 'tag9', 'tag10',
-#             'tag11', 'tag12', 'tag13', 'tag14', 'tag15', 'tag16', 'tag17', 'tag18', 'tag19', 'tag20',
-#             'tag21', 'tag22', 'tag23', 'tag24', 'tag25', 'tag26', 'tag27', 'tag28', 'tag29', 'tag30',
-#             'tag31', 'tag32', 'tag33', 'tag34', 'tag35', 'tag36', 'tag37']
-
-#     # Добавляем кнопки для каждого тэга
-#     for tag in tags:
-#         keyboard.add(types.InlineKeyboardButton(tag, callback_data=tag))
-
-#     # Отправляем клавиатуру пользователю
-#     bot.send_message(message.chat.id, 'Выберите тэг:', reply_markup=keyboard)
-
-# # Определяем обработчик события нажатия на кнопку
-# @bot.callback_query_handler(func=lambda call: True)
-# def handle_button_click(call):
-#     # Обрабатываем нажатие на кнопку
-#     if call.data == 'tag1':
-#         # Ваш код при выборе тэга tag1
-#         pass
-#     elif call.data == 'tag2':
-#         # Ваш код при выборе тэга tag2
-#         pass
-#     # Добавьте обработку для остальных тэгов...

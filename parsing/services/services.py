@@ -161,15 +161,6 @@ class GetProblems:
         subs.delete()
         return subs
 
-    def get_all_tags_for_problem(self, problem):
-        task_id = problem.id
-
-        task = Problems.objects.get(id=task_id)
-        tags = task.tags.all()
-
-        for tag in tags:
-            print(tag)
-
     def get_problems_by_tag(self, tag: str, contest: int, rating=None, number=5):
         # выбираем задачи с данным тэгом
         if rating:

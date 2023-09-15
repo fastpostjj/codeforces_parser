@@ -1,8 +1,9 @@
 from parsing.models import Subscriptions, Problems
 from parsing.services.services import GetProblems
-from parsing.services.bot_message import Bot_message
 from config.settings import LOG_FILE
 from django.utils import timezone
+import telebot
+from config.settings import BOT_TOKEN
 
 
 class MessageCreator():
@@ -10,7 +11,7 @@ class MessageCreator():
     Класс рассылки задач пользователям в соответствии
     с их подписками
     """
-    def __init__(self):
+    def __init__(self) -> None:
         self.log_file_name = LOG_FILE
 
     def save_log(self, text: str) -> None:
@@ -18,7 +19,7 @@ class MessageCreator():
         with open(self.log_file_name, "a", encoding="utf-8") as file:
             file.write(f"{datetime_now} {text}\n")
 
-    def make_text_for_send(self, problems):
+    def make_text_for_send(self, problems) -> str:
         text = ""
         if not isinstance(problems, Problems):
             for problem in problems:
@@ -38,6 +39,7 @@ def send_messages():
     """
     number = 5  # количество отправляемых задач за один раз для каждой подписки
     creator = MessageCreator()
+    bot = telebot.TeleBot(BOT_TOKEN)
     subs = creator.get_subscriptions()
     for sub in subs:
         problems = GetProblems().get_problems_by_tag(
@@ -46,10 +48,11 @@ def send_messages():
             rating=sub.rating,
             number=number
             )
-        text = creator.make_text_for_send(problems)
-        bot = Bot_message()
+        text = str(sub) + "\n"
+        text += creator.make_text_for_send(problems)
         bot.send_message(
             chat_id=sub.user.chat_id,
             text=text
             )
+
     creator.save_log("send messages")
