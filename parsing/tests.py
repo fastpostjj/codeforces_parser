@@ -471,7 +471,7 @@ class TestCodeforcesParserSaveLog(TestCase):
             file.write("")
 
     def test_save_log(self) -> None:
-        self.parser.log_file_name = "testfile.txt"
+        self.parser.log_file_name = "testfile.log"
         datetime_now = timezone.localtime(timezone.now()).strftime("%Y-%m-%d %H:%M:%S")
         self.parser.save_log("test")
         expected_text = datetime_now + " test"

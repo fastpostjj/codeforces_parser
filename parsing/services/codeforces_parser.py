@@ -116,7 +116,7 @@ class CodeforcesParser():
                 print(response.json()["comment"])
                 self.save_log(response.json()["comment"])
         else:
-            self.save_log("Ошибка при выполнении запроса")
+            self.save_log(f"Ошибка при выполнении запроса URL={self.url}{method} response={response.json()}")
 
     def get_from_file(self, filename="res.json"):
         with open(filename, mode="r", encoding="utf-8") as file:
