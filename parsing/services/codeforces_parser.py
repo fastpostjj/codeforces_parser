@@ -197,7 +197,7 @@ class CodeforcesParser():
                     text = "Новых задач и тэгов нет"
                     self.save_log(text)
             else:
-                self.save_log(f"Неправильный формат ответа")
+                self.save_log("Неправильный формат ответа")
 
         else:
             # Если status равен "FAILED", то поле comment содержит

@@ -681,9 +681,26 @@ class MessageCreatorTest(TestCase):
 
         url = problem1.get_url()
 
-        expected_text = "Задача 5674A name1. Сложность: 100, решений: 50, контест: Уровень" +\
+        expected_text1 = "Задача 5674A name1. Сложность: 100, решений: 50, контест: Уровень" +\
             " Test contest\nhttps://codeforces.com/problemset/problem/5674/A\n"
-        actual_text = self.creator.make_text_for_send(problem1)
-        self.assertEqual(actual_text, expected_text)
+        actual_text1 = self.creator.make_text_for_send(problem1)
+        self.assertEqual(actual_text1, expected_text1)
         self.assertEqual(url, "https://codeforces.com/problemset/problem/5674/A")
-    
+
+        Problems.objects.create(
+            name="name2",
+            contestId=5675,
+            index="B",
+            points=100,
+            rating=500,
+            type_problem="Test type",
+            solved_count=150,
+            contest=contest
+        )
+        actual_text2 = self.creator.make_text_for_send(Problems.objects.all())
+        expected_text2 = \
+            "Задача 5674A name1. Сложность: 100, решений: 50, контест: Уровень Test contest\n" +\
+            "https://codeforces.com/problemset/problem/5674/A\n" +\
+            "Задача 5675B name2. Сложность: 500, решений: 150, контест: Уровень Test contest\n" +\
+            "https://codeforces.com/problemset/problem/5675/B\n"
+        self.assertEqual(actual_text2, expected_text2)
