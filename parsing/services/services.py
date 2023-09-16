@@ -75,6 +75,7 @@ class GetProblems:
         tag_id = subscriptions.get('theme')
         contest = subscriptions.get('contest')
         rating = subscriptions.get('rating')
+        
         # проверяем, есть ли пользователь с таким id в базе и добавляем, если нет
         if not User.objects.filter(chat_id=chat_id).exists():
             user = User.objects.create(chat_id=chat_id)

@@ -196,6 +196,9 @@ class TestGetProblems(TestCase):
         """
         получить все подписки пользователя
         """
+        # новый пользователь
+
+        # существующий пользователь
         subs_count = self.test_creator.get_all_subscriptions(chat_id=TEST_USER_ID).count()
         tag_id = Tags.objects.get(name='combinatorics').id
         contest = "3"
@@ -205,9 +208,11 @@ class TestGetProblems(TestCase):
             'contest': contest,
             'rating': 800,
         }
-        self.test_creator.make_subscriptions(test_data)
+        new_sub = self.test_creator.make_subscriptions(test_data)
+
         new_subs_count = self.test_creator.get_all_subscriptions(chat_id=TEST_USER_ID).count()
         self.assertEqual(new_subs_count, subs_count + 1)
+        new_sub.delete()
 
     def test_make_subscriptions(self):
         subscriptions = {}
