@@ -100,7 +100,6 @@ class CodeforcesParser():
                     "lang": "ru"
                 })
         except Exception as error:
-            print("Ошибка получения данных", error)
             self.save_log(f"Ошибка получения данных {error}")
 
         if response.status_code == 200:
@@ -113,7 +112,6 @@ class CodeforcesParser():
                 return result
             else:
                 # comment содержит текст ошибки
-                print(response.json()["comment"])
                 self.save_log(response.json()["comment"])
         else:
             self.save_log(f"Ошибка при выполнении запроса URL={self.url}{method}")
@@ -123,96 +121,100 @@ class CodeforcesParser():
             result = json.load(file)
             return result
 
-    def get_update(self):
+    def get_data_from_response(self, result):
         """
-        разбираем полученные данные
+        разбираем полученные данные и создаем объекты
         """
-        self.save_log("check update")
-        result = self.get_data_from_site()
-
-        # создаем уровни, если их нет
-        self.create_contests()
-        # result = self.get_from_file()
-
         if result["status"] == "OK":
-            problems = result["result"]["problems"]
-            problemStatistics = result["result"]["problemStatistics"]
-            counter_problems = Problems.objects.all().count()
-            counter_tags = Tags.objects.all().count()
+            if "problems" in result["result"] and "problemStatistics" in result["result"]:
+                problems = result["result"]["problems"]
+                problemStatistics = result["result"]["problemStatistics"]
+                counter_problems = Problems.objects.all().count()
+                counter_tags = Tags.objects.all().count()
 
-            for problem in problems:
-                # Проверяем корректность полученного словаря на наличие обязательных ключей
-                if 'name' in problem and \
-                        'index' in problem and \
-                        'contestId' in problem and \
-                        'type' in problem and \
-                        'tags' in problem:
+                for problem in problems:
+                    # Проверяем корректность полученного словаря на наличие обязательных ключей
+                    if 'name' in problem and \
+                            'index' in problem and \
+                            'contestId' in problem and \
+                            'type' in problem and \
+                            'tags' in problem:
 
-                    # Название задачи
-                    name = problem["name"]
+                        # Название задачи
+                        name = problem["name"]
 
-                    # Может отсутствовать. Максимальное количество баллов за задачу.
-                    if 'points' in problem:
-                        points = problem["points"]
+                        # Может отсутствовать. Максимальное количество баллов за задачу.
+                        if 'points' in problem:
+                            points = problem["points"]
+                        else:
+                            points = 0
+
+                        # Может отсутствовать. Рейтинг задачи (сложность).
+                        if 'rating' in problem:
+                            rating = problem["rating"]
+                        else:
+                            rating = 0
+
+                        # буква или буква с цифрой, обозначающие индекс задачи в соревновании.
+                        index = problem['index']
+
+                        # Принимает два значения:PROGRAMMING, QUESTION.
+                        if 'type' in problem:
+                            type = problem["type"]
+                        else:
+                            type = ""
+
+                        # id соревнования
+                        contestId = problem['contestId']
+
+                        # Список тэгов
+                        tags = problem['tags']
+
+                        # получаем количество решивших задачу
+                        solved_count = self.get_solved_count(problemStatistics, contestId, index)
+                        contest = self.get_contest_level(solved_count)
+                        data = {
+                            "name": name,
+                            "index": index,
+                            "points": points,
+                            "rating": rating,
+                            "contestId": contestId,
+                            "type": type,
+                            "solved_count": solved_count,
+                            "tags": tags,
+                            "contest": contest,
+                        }
+                        self.create_problem(data)
                     else:
-                        points = 0
+                        self.save_log(f"Неправильный формат {problem}")
 
-                    # Может отсутствовать. Рейтинг задачи (сложность).
-                    if 'rating' in problem:
-                        rating = problem["rating"]
-                    else:
-                        rating = 0
-
-                    # буква или буква с цифрой, обозначающие индекс задачи в соревновании.
-                    index = problem['index']
-
-                    # Принимает два значения:PROGRAMMING, QUESTION.
-                    if 'type' in problem:
-                        type = problem["type"]
-                    else:
-                        type = ""
-
-                    # id соревнования
-                    contestId = problem['contestId']
-
-                    # Список тэгов
-                    tags = problem['tags']
-
-                    # получаем количество решивших задачу
-                    solved_count = self.get_solved_count(problemStatistics, contestId, index)
-                    contest = self.get_contest_level(solved_count)
-                    data = {
-                        "name": name,
-                        "index": index,
-                        "points": points,
-                        "rating": rating,
-                        "contestId": contestId,
-                        "type": type,
-                        "solved_count": solved_count,
-                        "tags": tags,
-                        "contest": contest,
-                    }
-                    self.create_problem(data)
+                problems_added = Problems.objects.all().count() - counter_problems
+                tags_added = Tags.objects.all().count() - counter_tags
+                if problems_added + tags_added > 0:
+                    text = f"Добавлено {problems_added} задач и {tags_added} тегов"
+                    self.save_log(text)
                 else:
-                    print(f"Неправильный формат {problem}")
-                    self.save_log(f"Неправильный формат {problem}")
-
-            problems_added = Problems.objects.all().count() - counter_problems
-            tags_added = Tags.objects.all().count() - counter_tags
-            if problems_added + tags_added > 0:
-                text = f"Добавлено {problems_added} задач и {tags_added} тегов"
-                print(text)
-                self.save_log(text)
+                    text = "Новых задач и тэгов нет"
+                    self.save_log(text)
             else:
-                text = "Новых задач и тэгов нет"
-                print(text)
-                self.save_log(text)
+                self.save_log(f"Неправильный формат ответа")
 
         else:
             # Если status равен "FAILED", то поле comment содержит
             # причину, по которой запрос не получилось выполнить
-            print(result["comment"])
             self.save_log(result["comment"])
+
+    def get_update(self):
+        """
+        получаем данные с сайта
+        """
+        # создаем уровни, если их нет
+        self.create_contests()
+
+        self.save_log("check update")
+        result = self.get_data_from_site()
+
+        self.get_data_from_response(result)
 
     def create_contests(self):
         """

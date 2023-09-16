@@ -3,13 +3,15 @@ from parsing.models import Subscriptions, Problems, Tags, Contest
 from parsing.services.services import GetProblems
 from parsing.services.message_creator import MessageCreator
 from parsing.services.codeforces_parser import CodeforcesParser
-from config.settings import URL
+from config.settings import URL, LOG_FILE
 import json
 import os
 from django.utils import timezone
 
 
 TEST_USER_ID = 1
+TEST_NEW_USER_ID = 111
+TEST_LOG_FILE = "test.log"
 data1 = {
     'name': 'Mighty Rock Tower',
     'index': 'M',
@@ -62,6 +64,128 @@ data5 = {
     }
 
 
+class TestCodeforcesParser_get_data_from_site(TestCase):
+    def setUp(self) -> None:
+        self.parser = CodeforcesParser()
+        self.parser.log_file_name = TEST_LOG_FILE
+        self.parser.create_contests()
+
+    def test_get_data_from_response(self) -> None:
+        result = {
+            "status": "OK",
+            "result": {
+                "problems": [
+                    {
+                        "contestId": 2121,
+                        "index": "A",
+                        "name": "Test problem1",
+                        "type": "PROGRAMMING",
+                        "tags": [
+                            "test tag1",
+                            "test tag2"
+                            ]
+                    },
+                    {
+                        "contestId": 2121,
+                        "index": "F",
+                        "name": "Test problem2",
+                        "type": "PROGRAMMING",
+                        "tags": [
+                            "test tag3",
+                            "test tag4"
+                            ]
+                    }
+                    ],
+                "problemStatistics": [
+                    {
+                        "contestId": 2121,
+                        "index": "A",
+                        "solvedCount": 3377
+                    },
+                    {
+                        "contestId": 2121,
+                        "index": "F",
+                        "solvedCount": 11649
+                    }
+                    ]
+                }
+            }
+        tags_count = Tags.objects.all().count()
+        problems_count = Problems.objects.all().count()
+        self.parser.get_data_from_response(result)
+
+        new_tags_count = Tags.objects.all().count()
+        new_problems_count = Problems.objects.all().count()
+
+        self.assertEqual(tags_count + 4, new_tags_count)
+        self.assertEqual(problems_count + 2, new_problems_count)
+
+    def test_get_data_from_response_wrong_data1(self) -> None:
+        """
+        неправильные данные - нет обязательных тэгов
+         'name', 'index', 'contestId', 'type', 'tags'
+        """
+        result = {
+            "status": "OK",
+            "result": {
+                "problems": [
+                    {
+                        "contestId": 2123,
+                        "name": "Test problem3",
+                        "type": "PROGRAMMING",
+                        "tags": [
+                            "test tag8"
+                            ]
+                    }
+                    ],
+                "problemStatistics": [
+                    ]
+                }
+            }
+        tags_count = Tags.objects.all().count()
+        problems_count = Problems.objects.all().count()
+        self.parser.get_data_from_response(result)
+
+        new_tags_count = Tags.objects.all().count()
+        new_problems_count = Problems.objects.all().count()
+
+        self.assertEqual(tags_count, new_tags_count)
+        self.assertEqual(problems_count, new_problems_count)
+
+    def test_get_data_from_response_wrong_data2(self) -> None:
+        result = {
+            "status": "OK",
+            "result": {
+                "problems": [
+                    {
+                        "contestId": 2123,
+                        "index": "A",
+                        "name": "Test problem3",
+                        "type": "PROGRAMMING",
+                        "tags": [
+                            "test tag8"
+                            ]
+                    }
+                    ]
+                }
+            }
+        tags_count = Tags.objects.all().count()
+        problems_count = Problems.objects.all().count()
+        self.parser.get_data_from_response(result)
+
+        new_tags_count = Tags.objects.all().count()
+        new_problems_count = Problems.objects.all().count()
+        self.assertEqual(tags_count, new_tags_count)
+        self.assertEqual(problems_count, new_problems_count)
+
+    def tearDown(self) -> None:
+        try:
+            os.remove(self.parser.log_file_name)
+        except OSError as error:
+            print(f"Ошибка при удалении файла {self.parser.log_file_name}: {error}")
+        self.log_file_name = LOG_FILE
+
+
 class TestCodeforcesParser_create_contests(TestCase):
     def setUp(self):
         self.parser = CodeforcesParser()
@@ -80,7 +204,7 @@ class TestCodeforcesParser_create_contests(TestCase):
 
 
 class TestGetProblems(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.test_creator = GetProblems()
         self.parser = CodeforcesParser()
         CodeforcesParser().create_contests()
@@ -89,28 +213,28 @@ class TestGetProblems(TestCase):
         self.parser.problem1 = self.parser.create_problem(data1)
         self.parser.problem2 = self.parser.create_problem(data2)
 
-    def test_get_all_tags(self):
+    def test_get_all_tags(self) -> None:
         """
         получаем все тэги
         """
         count_tag = self.test_creator.get_all_tags().count()
         self.assertEqual(count_tag, 6)
 
-    def test_get_all_levels(self):
+    def test_get_all_levels(self) -> None:
         """
         получаем все контесты (уровни)
         """
         count_levels = self.test_creator.get_all_levels().count()
         self.assertEqual(count_levels, 7)
 
-    def test_get_all_rating(self):
+    def test_get_all_rating(self) -> None:
         """
         получаем все уникальные значения рейтига
         """
         count_rating = self.test_creator.get_all_rating().count()
         self.assertEqual(count_rating, 2)
 
-    def test_get_sub_from_str(self):
+    def test_get_sub_from_str(self) -> None:
         text1 = "/subscribe тема 1 уровень 2 рейтинг 4"
         data1 = self.test_creator.get_sub_from_str(text1)
         self.assertEqual(data1, {'theme': '1', 'contest': '2', 'rating': '4'})
@@ -127,7 +251,7 @@ class TestGetProblems(TestCase):
         data4 = self.test_creator.get_sub_from_str(text4)
         self.assertEqual(data4, {'theme': '31', 'contest': '4', 'rating': '800'})
 
-    def test_check_subscriptions(self):
+    def test_check_subscriptions(self) -> None:
         """
         проверить правильность задания атрибутов подписки
         """
@@ -192,13 +316,10 @@ class TestGetProblems(TestCase):
         is_correct = self.test_creator.check_subscriptions(subscriptions=subscriptions7)
         self.assertFalse(is_correct)
 
-    def test_get_all_subscriptions(self):
+    def test_get_all_subscriptions(self) -> None:
         """
         получить все подписки пользователя
         """
-        # новый пользователь
-
-        # существующий пользователь
         subs_count = self.test_creator.get_all_subscriptions(chat_id=TEST_USER_ID).count()
         tag_id = Tags.objects.get(name='combinatorics').id
         contest = "3"
@@ -214,10 +335,29 @@ class TestGetProblems(TestCase):
         self.assertEqual(new_subs_count, subs_count + 1)
         new_sub.delete()
 
-    def test_make_subscriptions(self):
-        subscriptions = {}
+    def test_make_subscriptions_new_user(self) -> None:
+
+        # новый пользователь
+        subs_count = self.test_creator.get_all_subscriptions(chat_id=TEST_NEW_USER_ID).count()
+        tag_id = Tags.objects.get(name='combinatorics').id
+        contest = "3"
+        test_data = {
+            'chat_id': TEST_NEW_USER_ID,
+            'theme': tag_id,
+            'contest': contest,
+            'rating': 800,
+        }
+        new_sub = self.test_creator.make_subscriptions(test_data)
+
+        new_subs_count = self.test_creator.get_all_subscriptions(chat_id=TEST_NEW_USER_ID).count()
+        self.assertEqual(new_subs_count, subs_count + 1)
+        new_sub.delete()
+
+    def test_make_subscriptions(self) -> None:
         tag = Tags.objects.all()[0]
         tag_id = tag.id
+
+        subscriptions = {}
         subscriptions['theme'] = tag_id
         subscriptions['contest'] = self.parser.problem1.contest.name
         subscriptions['chat_id'] = TEST_USER_ID
@@ -225,10 +365,8 @@ class TestGetProblems(TestCase):
         # 1-й вариант без рейтинга
         is_correct = self.test_creator.check_subscriptions(subscriptions=subscriptions)
         if is_correct:
-            # self.assertEqual(sub.rating, None)
             sub = self.test_creator.make_subscriptions(subscriptions=subscriptions)
             self.assertEqual(sub.tag, tag)
-            # self.assertEqual(sub.rating, subscriptions['rating'])
             self.assertEqual(sub.contest.name, subscriptions['contest'])
             self.assertEqual(sub.user.chat_id, TEST_USER_ID)
             sub.delete()
@@ -245,7 +383,7 @@ class TestGetProblems(TestCase):
             self.assertEqual(sub.user.chat_id, TEST_USER_ID)
             sub.delete()
 
-    def test_del_all_subscriptions(self):
+    def test_del_all_subscriptions(self) -> None:
         subscriptions = {
             'chat_id': TEST_USER_ID,
             'theme': Tags.objects.all().order_by('id')[0].id,
@@ -256,7 +394,7 @@ class TestGetProblems(TestCase):
         self.test_creator.del_all_subscriptions(TEST_USER_ID)
         self.assertEquals(Subscriptions.objects.filter(user=TEST_USER_ID).count(), 0)
 
-    def test_get_problems_by_tag(self):
+    def test_get_problems_by_tag(self) -> None:
         number = 5
 
         # Создаем тестовые тэги и задачи
@@ -320,8 +458,6 @@ class TestGetProblems(TestCase):
 
 class Test_CodeforcesParser(TestCase):
     def setUp(self) -> None:
-        self.GOOD_URL = URL
-        self.BAD_URL = URL + "smth"
         self.parser = CodeforcesParser()
         CodeforcesParser().create_contests()
         self.test_problem1 = Problems.objects.create(
@@ -447,10 +583,12 @@ class Test_CodeforcesParser(TestCase):
 
 
 class TestCodeforcesParserAPI(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.GOOD_URL = URL
-        self.BAD_URL = URL + "smth"
+        self.BAD_URL = URL + "wrong"
         self.parser = CodeforcesParser()
+        self.parser.log_file_name = TEST_LOG_FILE
+
         self.test_problem1 = Problems.objects.create(
             name=data1['name'],
             index=data1['index'],
@@ -458,13 +596,20 @@ class TestCodeforcesParserAPI(TestCase):
             solved_count=15
         )
 
-    def test_get_data_from_site(self):
+    def test_get_data_from_site(self) -> None:
         response = self.parser.get_data_from_site()
         self.assertIsNotNone(response)
 
         self.parser.url = self.BAD_URL
         response = self.parser.get_data_from_site()
         self.assertIsNone(response)
+
+    def tearDown(self) -> None:
+        try:
+            os.remove(self.parser.log_file_name)
+        except OSError as error:
+            print(f"Ошибка при удалении файла {self.parser.log_file_name}: {error}")
+        self.log_file_name = LOG_FILE
 
 
 class TestCodeforcesParserSaveLog(TestCase):
@@ -476,7 +621,7 @@ class TestCodeforcesParserSaveLog(TestCase):
             file.write("")
 
     def test_save_log(self) -> None:
-        self.parser.log_file_name = "testfile.log"
+        self.parser.log_file_name = TEST_LOG_FILE
         datetime_now = timezone.localtime(timezone.now()).strftime("%Y-%m-%d %H:%M:%S")
         self.parser.save_log("test")
         expected_text = datetime_now + " test"
@@ -488,7 +633,7 @@ class TestCodeforcesParserSaveLog(TestCase):
         except OSError as error:
             print(f"Ошибка при удалении файла {self.parser.log_file_name}: {error}")
 
-    def test_get_from_file(self):
+    def test_get_from_file(self) -> None:
         data = {
             'name': 'Test Problem',
             'index': 'A',
@@ -515,10 +660,10 @@ class TestCodeforcesParserSaveLog(TestCase):
 
 class MessageCreatorTest(TestCase):
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.creator = MessageCreator()
 
-    def test_make_text_for_send(self):
+    def test_make_text_for_send(self) -> None:
         contest = Contest.objects.create(
             name="Test contest",
             annotation="Test annotation"
@@ -541,3 +686,4 @@ class MessageCreatorTest(TestCase):
         actual_text = self.creator.make_text_for_send(problem1)
         self.assertEqual(actual_text, expected_text)
         self.assertEqual(url, "https://codeforces.com/problemset/problem/5674/A")
+    
